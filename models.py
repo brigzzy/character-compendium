@@ -50,6 +50,30 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS inventory_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            location TEXT DEFAULT '',
+            quantity INTEGER DEFAULT NULL,
+            equipped INTEGER DEFAULT 0,
+            sort_order INTEGER DEFAULT 0,
+            FOREIGN KEY (character_id) REFERENCES characters (id) ON DELETE CASCADE
+        )
+    ''')
+
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS item_properties (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            stat_modified TEXT NOT NULL,
+            value INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (item_id) REFERENCES inventory_items (id) ON DELETE CASCADE
+        )
+    ''')
     
     conn.commit()
     conn.close()
@@ -175,3 +199,168 @@ def delete_user(user_id):
     conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
     conn.commit()
     conn.close()
+
+
+# --- Inventory Functions ---
+
+# The stat options available for item properties
+STAT_OPTIONS = [
+    ('ac', 'Armor Class'),
+    ('hp_max', 'Max HP'),
+    ('mana_max', 'Max Mana'),
+    ('str_score', 'Strength Score'),
+    ('int_score', 'Intelligence Score'),
+    ('proficiency_bonus', 'Proficiency Bonus'),
+    ('spell_attack', 'Spell Attack'),
+    ('str_save', 'Strength Save'),
+    ('int_save', 'Intelligence Save'),
+    ('athletics', 'Athletics'),
+    ('arcana', 'Arcana'),
+    ('history', 'History'),
+    ('investigation', 'Investigation'),
+    ('nature', 'Nature'),
+    ('religion', 'Religion'),
+]
+
+def get_inventory(character_id):
+    """Get all inventory items with their properties for a character."""
+    conn = get_db()
+    items = conn.execute(
+        'SELECT * FROM inventory_items WHERE character_id = ? ORDER BY equipped DESC, sort_order, name',
+        (character_id,)
+    ).fetchall()
+    
+    result = []
+    for item in items:
+        item_dict = dict(item)
+        props = conn.execute(
+            'SELECT * FROM item_properties WHERE item_id = ? ORDER BY id',
+            (item_dict['id'],)
+        ).fetchall()
+        item_dict['properties'] = [dict(p) for p in props]
+        result.append(item_dict)
+    
+    conn.close()
+    return result
+
+def get_inventory_item(item_id, character_id):
+    """Get a single inventory item with properties."""
+    conn = get_db()
+    item = conn.execute(
+        'SELECT * FROM inventory_items WHERE id = ? AND character_id = ?',
+        (item_id, character_id)
+    ).fetchone()
+    
+    if not item:
+        conn.close()
+        return None
+    
+    item_dict = dict(item)
+    props = conn.execute(
+        'SELECT * FROM item_properties WHERE item_id = ? ORDER BY id',
+        (item_dict['id'],)
+    ).fetchall()
+    item_dict['properties'] = [dict(p) for p in props]
+    
+    conn.close()
+    return item_dict
+
+def add_inventory_item(character_id, name, description, location, quantity, properties):
+    """Add a new inventory item with properties. Returns the new item id."""
+    conn = get_db()
+    cursor = conn.execute(
+        'INSERT INTO inventory_items (character_id, name, description, location, quantity) VALUES (?, ?, ?, ?, ?)',
+        (character_id, name, description, location, quantity)
+    )
+    item_id = cursor.lastrowid
+    
+    for prop in properties:
+        if prop.get('stat_modified') and prop.get('value') is not None:
+            conn.execute(
+                'INSERT INTO item_properties (item_id, stat_modified, value) VALUES (?, ?, ?)',
+                (item_id, prop['stat_modified'], prop['value'])
+            )
+    
+    conn.commit()
+    conn.close()
+    return item_id
+
+def update_inventory_item(item_id, character_id, name, description, location, quantity, properties):
+    """Update an existing inventory item and its properties."""
+    conn = get_db()
+    
+    # Verify item belongs to this character
+    item = conn.execute(
+        'SELECT id FROM inventory_items WHERE id = ? AND character_id = ?',
+        (item_id, character_id)
+    ).fetchone()
+    
+    if not item:
+        conn.close()
+        return False
+    
+    conn.execute(
+        'UPDATE inventory_items SET name = ?, description = ?, location = ?, quantity = ? WHERE id = ?',
+        (name, description, location, quantity, item_id)
+    )
+    
+    # Replace all properties
+    conn.execute('DELETE FROM item_properties WHERE item_id = ?', (item_id,))
+    for prop in properties:
+        if prop.get('stat_modified') and prop.get('value') is not None:
+            conn.execute(
+                'INSERT INTO item_properties (item_id, stat_modified, value) VALUES (?, ?, ?)',
+                (item_id, prop['stat_modified'], prop['value'])
+            )
+    
+    conn.commit()
+    conn.close()
+    return True
+
+def delete_inventory_item(item_id, character_id):
+    """Delete an inventory item and its properties."""
+    conn = get_db()
+    conn.execute(
+        'DELETE FROM inventory_items WHERE id = ? AND character_id = ?',
+        (item_id, character_id)
+    )
+    conn.commit()
+    conn.close()
+
+def toggle_equip_item(item_id, character_id):
+    """Toggle the equipped status of an item. Returns new status."""
+    conn = get_db()
+    item = conn.execute(
+        'SELECT equipped FROM inventory_items WHERE id = ? AND character_id = ?',
+        (item_id, character_id)
+    ).fetchone()
+    
+    if not item:
+        conn.close()
+        return None
+    
+    new_status = 0 if item['equipped'] else 1
+    conn.execute(
+        'UPDATE inventory_items SET equipped = ? WHERE id = ?',
+        (new_status, item_id)
+    )
+    conn.commit()
+    conn.close()
+    return new_status
+
+def get_equipped_bonuses(character_id):
+    """Calculate total stat bonuses from all equipped items."""
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT ip.stat_modified, SUM(ip.value) as total
+        FROM item_properties ip
+        JOIN inventory_items ii ON ip.item_id = ii.id
+        WHERE ii.character_id = ? AND ii.equipped = 1
+        GROUP BY ip.stat_modified
+    ''', (character_id,)).fetchall()
+    conn.close()
+    
+    bonuses = {}
+    for row in rows:
+        bonuses[row['stat_modified']] = row['total']
+    return bonuses

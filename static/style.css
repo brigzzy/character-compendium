@@ -164,7 +164,8 @@ main {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid #ddd;
@@ -174,7 +175,8 @@ main {
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
     outline: none;
     border-color: #3498db;
 }
@@ -445,31 +447,6 @@ main {
     border-top: 2px solid #e0e0e0;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .sheet-columns {
-        grid-template-columns: 1fr;
-    }
-    
-    .header-row {
-        grid-template-columns: 1fr;
-    }
-    
-    .combat-stats {
-        grid-template-columns: 1fr;
-    }
-    
-    .character-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-}
-
 /* Admin Page Styles */
 .admin-page {
     background: white;
@@ -557,12 +534,334 @@ main {
     font-size: 0.9rem;
 }
 
+.btn-icon {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+
+/* ================================================
+   INVENTORY STYLES
+   ================================================ */
+
+/* Section header with title + button */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.section-header h3 {
+    margin-bottom: 0;
+}
+
+/* Inventory list */
+.inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.inventory-item {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inventory-item.equipped {
+    border-color: #3498db;
+    border-left: 4px solid #3498db;
+    background: #f0f7fd;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.item-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.item-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.item-quantity {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.badge-equipped {
+    background-color: #3498db;
+    color: white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.item-actions {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.btn-equip {
+    background-color: #27ae60;
+    color: white;
+}
+
+.btn-equip:hover {
+    background-color: #219a52;
+}
+
+.item-location {
+    font-size: 0.85rem;
+    color: #777;
+    margin-top: 0.35rem;
+}
+
+.item-description {
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 0.35rem;
+    line-height: 1.4;
+}
+
+.item-properties {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+}
+
+.item-property-tag {
+    background: #eaf2e3;
+    color: #3a7a0d;
+    padding: 0.2rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.empty-inventory {
+    text-align: center;
+    padding: 1.5rem;
+    color: #999;
+    font-style: italic;
+}
+
+/* Equipment bonus indicators */
+.equip-bonus {
+    color: #27ae60;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.equip-bonus-stat {
+    color: #27ae60;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.equip-bonus-inline {
+    color: #27ae60;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+
+/* ================================================
+   MODAL STYLES
+   ================================================ */
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 550px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    margin-top: 2rem;
+    animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #2c3e50;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: #999;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    border-radius: 0 0 8px 8px;
+}
+
+.form-row-modal {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+}
+
+/* Property rows in modal */
+#properties-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.property-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.property-select {
+    flex: 2;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.property-value {
+    width: 80px !important;
+    flex: 0 0 80px;
+    text-align: center;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+
+/* ================================================
+   RESPONSIVE
+   ================================================ */
+
 @media (max-width: 768px) {
+    .sheet-columns {
+        grid-template-columns: 1fr;
+    }
+    
+    .header-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .combat-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .character-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
     .create-user-form .form-row {
         grid-template-columns: 1fr;
     }
     
     .checkbox-group {
         padding-top: 0;
+    }
+    
+    .item-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .item-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .form-row-modal {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        margin-top: 1rem;
     }
 }

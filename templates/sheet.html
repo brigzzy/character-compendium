@@ -36,50 +36,66 @@
                 <div class="section ability-scores">
                     <h3>Ability Scores</h3>
                     
+                    {% set str_bonus = bonuses.get('str_score', 0) %}
                     <div class="ability-score">
                         <label>Strength</label>
                         <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input">
-                        <div class="modifier">{{ ((character.str_score - 10) // 2) if character.str_score >= 10 else ((character.str_score - 11) // 2) }}</div>
+                        {% if str_bonus %}
+                        <span class="equip-bonus" title="From equipped items">+{{ str_bonus }}</span>
+                        {% endif %}
+                        {% set effective_str = character.str_score + str_bonus %}
+                        <div class="modifier">{{ ((effective_str - 10) // 2) if effective_str >= 10 else ((effective_str - 11) // 2) }}</div>
                     </div>
                     
+                    {% set int_bonus = bonuses.get('int_score', 0) %}
                     <div class="ability-score">
                         <label>Intelligence</label>
                         <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input">
-                        <div class="modifier">{{ ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) }}</div>
+                        {% if int_bonus %}
+                        <span class="equip-bonus" title="From equipped items">+{{ int_bonus }}</span>
+                        {% endif %}
+                        {% set effective_int = character.int_score + int_bonus %}
+                        <div class="modifier">{{ ((effective_int - 10) // 2) if effective_int >= 10 else ((effective_int - 11) // 2) }}</div>
                     </div>
                 </div>
 
                 <!-- Proficiency Bonus -->
                 <div class="section proficiency-section">
                     <label for="proficiency_bonus">Proficiency Bonus</label>
-                    <input type="number" name="proficiency_bonus" value="{{ character.proficiency_bonus }}" min="0" class="bonus-input">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="number" name="proficiency_bonus" value="{{ character.proficiency_bonus }}" min="0" class="bonus-input">
+                        {% set prof_bonus = bonuses.get('proficiency_bonus', 0) %}
+                        {% if prof_bonus %}
+                        <span class="equip-bonus" title="From equipped items">+{{ prof_bonus }}</span>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <!-- Saving Throws -->
                 <div class="section saves">
                     <h3>Saving Throws</h3>
+                    {% set effective_str = character.str_score + bonuses.get('str_score', 0) %}
+                    {% set effective_int = character.int_score + bonuses.get('int_score', 0) %}
+                    {% set effective_prof = character.proficiency_bonus + bonuses.get('proficiency_bonus', 0) %}
+                    
                     <div class="skill-item">
                         <input type="checkbox" id="str_save_prof" name="str_save_prof" value="1" {% if character.str_save_prof %}checked{% endif %}>
                         <label for="str_save_prof">Strength</label>
                         <span class="skill-bonus">
-                            {% set str_mod = ((character.str_score - 10) // 2) if character.str_score >= 10 else ((character.str_score - 11) // 2) %}
-                            {% if character.str_save_prof %}
-                                {{ str_mod + character.proficiency_bonus }}
-                            {% else %}
-                                {{ str_mod }}
-                            {% endif %}
+                            {% set str_mod = ((effective_str - 10) // 2) if effective_str >= 10 else ((effective_str - 11) // 2) %}
+                            {% set str_save_equip = bonuses.get('str_save', 0) %}
+                            {{ str_mod + (effective_prof if character.str_save_prof else 0) + str_save_equip }}
+                            {% if str_save_equip %}<span class="equip-bonus-inline" title="Includes +{{ str_save_equip }} from items">*</span>{% endif %}
                         </span>
                     </div>
                     <div class="skill-item">
                         <input type="checkbox" id="int_save_prof" name="int_save_prof" value="1" {% if character.int_save_prof %}checked{% endif %}>
                         <label for="int_save_prof">Intelligence</label>
                         <span class="skill-bonus">
-                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
-                            {% if character.int_save_prof %}
-                                {{ int_mod + character.proficiency_bonus }}
-                            {% else %}
-                                {{ int_mod }}
-                            {% endif %}
+                            {% set int_mod = ((effective_int - 10) // 2) if effective_int >= 10 else ((effective_int - 11) // 2) %}
+                            {% set int_save_equip = bonuses.get('int_save', 0) %}
+                            {{ int_mod + (effective_prof if character.int_save_prof else 0) + int_save_equip }}
+                            {% if int_save_equip %}<span class="equip-bonus-inline" title="Includes +{{ int_save_equip }} from items">*</span>{% endif %}
                         </span>
                     </div>
                 </div>
@@ -88,83 +104,29 @@
                 <div class="section skills">
                     <h3>Skills</h3>
                     
-                    <div class="skill-item">
-                        <input type="checkbox" id="athletics_prof" name="athletics_prof" value="1" {% if character.athletics_prof %}checked{% endif %}>
-                        <label for="athletics_prof">Athletics (Str)</label>
-                        <span class="skill-bonus">
-                            {% set str_mod = ((character.str_score - 10) // 2) if character.str_score >= 10 else ((character.str_score - 11) // 2) %}
-                            {% if character.athletics_prof %}
-                                {{ str_mod + character.proficiency_bonus }}
-                            {% else %}
-                                {{ str_mod }}
-                            {% endif %}
-                        </span>
-                    </div>
+                    {% set str_mod = ((effective_str - 10) // 2) if effective_str >= 10 else ((effective_str - 11) // 2) %}
+                    {% set int_mod = ((effective_int - 10) // 2) if effective_int >= 10 else ((effective_int - 11) // 2) %}
                     
-                    <div class="skill-item">
-                        <input type="checkbox" id="arcana_prof" name="arcana_prof" value="1" {% if character.arcana_prof %}checked{% endif %}>
-                        <label for="arcana_prof">Arcana (Int)</label>
-                        <span class="skill-bonus">
-                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
-                            {% if character.arcana_prof %}
-                                {{ int_mod + character.proficiency_bonus }}
-                            {% else %}
-                                {{ int_mod }}
-                            {% endif %}
-                        </span>
-                    </div>
+                    {% set skill_list = [
+                        ('athletics_prof', 'Athletics (Str)', str_mod, 'athletics'),
+                        ('arcana_prof', 'Arcana (Int)', int_mod, 'arcana'),
+                        ('history_prof', 'History (Int)', int_mod, 'history'),
+                        ('investigation_prof', 'Investigation (Int)', int_mod, 'investigation'),
+                        ('nature_prof', 'Nature (Int)', int_mod, 'nature'),
+                        ('religion_prof', 'Religion (Int)', int_mod, 'religion'),
+                    ] %}
                     
+                    {% for field, label, base_mod, bonus_key in skill_list %}
+                    {% set skill_equip = bonuses.get(bonus_key, 0) %}
                     <div class="skill-item">
-                        <input type="checkbox" id="history_prof" name="history_prof" value="1" {% if character.history_prof %}checked{% endif %}>
-                        <label for="history_prof">History (Int)</label>
+                        <input type="checkbox" id="{{ field }}" name="{{ field }}" value="1" {% if character[field] %}checked{% endif %}>
+                        <label for="{{ field }}">{{ label }}</label>
                         <span class="skill-bonus">
-                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
-                            {% if character.history_prof %}
-                                {{ int_mod + character.proficiency_bonus }}
-                            {% else %}
-                                {{ int_mod }}
-                            {% endif %}
+                            {{ base_mod + (effective_prof if character[field] else 0) + skill_equip }}
+                            {% if skill_equip %}<span class="equip-bonus-inline" title="Includes +{{ skill_equip }} from items">*</span>{% endif %}
                         </span>
                     </div>
-                    
-                    <div class="skill-item">
-                        <input type="checkbox" id="investigation_prof" name="investigation_prof" value="1" {% if character.investigation_prof %}checked{% endif %}>
-                        <label for="investigation_prof">Investigation (Int)</label>
-                        <span class="skill-bonus">
-                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
-                            {% if character.investigation_prof %}
-                                {{ int_mod + character.proficiency_bonus }}
-                            {% else %}
-                                {{ int_mod }}
-                            {% endif %}
-                        </span>
-                    </div>
-                    
-                    <div class="skill-item">
-                        <input type="checkbox" id="nature_prof" name="nature_prof" value="1" {% if character.nature_prof %}checked{% endif %}>
-                        <label for="nature_prof">Nature (Int)</label>
-                        <span class="skill-bonus">
-                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
-                            {% if character.nature_prof %}
-                                {{ int_mod + character.proficiency_bonus }}
-                            {% else %}
-                                {{ int_mod }}
-                            {% endif %}
-                        </span>
-                    </div>
-                    
-                    <div class="skill-item">
-                        <input type="checkbox" id="religion_prof" name="religion_prof" value="1" {% if character.religion_prof %}checked{% endif %}>
-                        <label for="religion_prof">Religion (Int)</label>
-                        <span class="skill-bonus">
-                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
-                            {% if character.religion_prof %}
-                                {{ int_mod + character.proficiency_bonus }}
-                            {% else %}
-                                {{ int_mod }}
-                            {% endif %}
-                        </span>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
@@ -176,6 +138,10 @@
                     <div class="stat-box">
                         <label for="ac">Armor Class</label>
                         <input type="number" name="ac" value="{{ character.ac }}" min="0" class="stat-input">
+                        {% set ac_bonus = bonuses.get('ac', 0) %}
+                        {% if ac_bonus %}
+                        <div class="equip-bonus-stat" title="From equipped items">+{{ ac_bonus }} from items = {{ character.ac + ac_bonus }}</div>
+                        {% endif %}
                     </div>
                     <div class="stat-box">
                         <label>Hit Points</label>
@@ -184,6 +150,10 @@
                             <span>/</span>
                             <input type="number" name="hp_max" value="{{ character.hp_max }}" min="0" class="stat-input" placeholder="Max">
                         </div>
+                        {% set hp_bonus = bonuses.get('hp_max', 0) %}
+                        {% if hp_bonus %}
+                        <div class="equip-bonus-stat" title="From equipped items">+{{ hp_bonus }} max from items</div>
+                        {% endif %}
                     </div>
                     <div class="stat-box">
                         <label>Mana</label>
@@ -192,13 +162,74 @@
                             <span>/</span>
                             <input type="number" name="mana_max" value="{{ character.mana_max }}" min="0" class="stat-input" placeholder="Max">
                         </div>
+                        {% set mana_bonus = bonuses.get('mana_max', 0) %}
+                        {% if mana_bonus %}
+                        <div class="equip-bonus-stat" title="From equipped items">+{{ mana_bonus }} max from items</div>
+                        {% endif %}
                     </div>
                 </div>
 
-                <!-- Equipment -->
+                <!-- Inventory Section -->
+                <div class="section inventory-section">
+                    <div class="section-header">
+                        <h3>Inventory</h3>
+                        <button type="button" class="btn btn-primary btn-small" onclick="openAddItemModal()">+ Add Item</button>
+                    </div>
+
+                    {% if inventory %}
+                    <div class="inventory-list">
+                        {% for item in inventory %}
+                        <div class="inventory-item {{ 'equipped' if item.equipped else '' }}">
+                            <div class="item-header">
+                                <div class="item-name-row">
+                                    <span class="item-name">{{ item.name }}</span>
+                                    {% if item.quantity is not none %}
+                                    <span class="item-quantity">×{{ item.quantity }}</span>
+                                    {% endif %}
+                                    {% if item.equipped %}
+                                    <span class="badge badge-equipped">Equipped</span>
+                                    {% endif %}
+                                </div>
+                                <div class="item-actions">
+                                    <form method="POST" action="{{ url_for('toggle_equip_item', character_id=character.id, item_id=item.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-small {{ 'btn-secondary' if item.equipped else 'btn-equip' }}" title="{{ 'Unequip' if item.equipped else 'Equip' }}">
+                                            {{ '⬇ Unequip' if item.equipped else '⬆ Equip' }}
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-small btn-secondary" onclick="openEditItemModal({{ item.id }})" title="Edit">✎</button>
+                                    <form method="POST" action="{{ url_for('delete_inventory_item', character_id=character.id, item_id=item.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Remove {{ item.name }} from inventory?')" title="Delete">✕</button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% if item.location %}
+                            <div class="item-location">📍 {{ item.location }}</div>
+                            {% endif %}
+                            {% if item.description %}
+                            <div class="item-description">{{ item.description }}</div>
+                            {% endif %}
+                            {% if item.properties %}
+                            <div class="item-properties">
+                                {% for prop in item.properties %}
+                                <span class="item-property-tag">
+                                    {{ dict(stat_options)[prop.stat_modified] }}
+                                    {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-inventory">No items yet. Add your first item!</div>
+                    {% endif %}
+                </div>
+
+                <!-- Equipment (legacy text field) -->
                 <div class="section text-section">
-                    <h3>Equipment</h3>
-                    <textarea name="equipment" rows="6">{{ character.equipment or '' }}</textarea>
+                    <h3>Equipment Notes</h3>
+                    <textarea name="equipment" rows="4">{{ character.equipment or '' }}</textarea>
                 </div>
 
                 <!-- Features & Traits -->
@@ -222,4 +253,56 @@
         </div>
     </form>
 </div>
+
+<!-- Inventory Modal -->
+<div id="inventory-modal" class="modal-overlay" 
+     data-stat-options='{{ stat_options | tojson }}'>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Add Item</h3>
+            <button type="button" class="modal-close" onclick="closeItemModal()">✕</button>
+        </div>
+        <form method="POST" 
+              data-add-url="{{ url_for('add_inventory_item', character_id=character.id) }}"
+              data-character-id="{{ character.id }}"
+              action="{{ url_for('add_inventory_item', character_id=character.id) }}">
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="item-name">Item Name</label>
+                    <input type="text" id="item-name" name="item_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="item-description">Description</label>
+                    <textarea id="item-description" name="item_description" rows="3"></textarea>
+                </div>
+
+                <div class="form-row-modal">
+                    <div class="form-group">
+                        <label for="item-location">Location</label>
+                        <input type="text" id="item-location" name="item_location" placeholder="e.g. Belt pouch, Backpack">
+                    </div>
+                    <div class="form-group">
+                        <label for="item-quantity">Quantity</label>
+                        <input type="number" id="item-quantity" name="item_quantity" min="1" placeholder="—">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Properties</label>
+                    <div id="properties-container"></div>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addPropertyRow()">+ Add Property</button>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeItemModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Item</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='inventory.js') }}"></script>
 {% endblock %}

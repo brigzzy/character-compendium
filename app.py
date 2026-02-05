@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
 import models
+import json
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
@@ -26,6 +27,10 @@ def admin_required(f):
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
+
+def _verify_character_ownership(character_id):
+    """Helper to verify the logged-in user owns this character. Returns character or None."""
+    return models.get_character(character_id, session['user_id'])
 
 @app.route('/')
 def index():
@@ -107,7 +112,6 @@ def admin_create_user():
 @app.route('/admin/user/<int:user_id>/toggle-admin', methods=['POST'])
 @admin_required
 def admin_toggle_admin(user_id):
-    # Prevent removing admin from self
     if user_id == session['user_id']:
         flash('Cannot change your own admin status')
         return redirect(url_for('admin'))
@@ -123,7 +127,6 @@ def admin_toggle_admin(user_id):
 @app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
 @admin_required
 def admin_delete_user(user_id):
-    # Prevent deleting self
     if user_id == session['user_id']:
         flash('Cannot delete your own account')
         return redirect(url_for('admin'))
@@ -150,11 +153,17 @@ def new_character():
 @app.route('/character/<int:character_id>')
 @login_required
 def view_character(character_id):
-    character = models.get_character(character_id, session['user_id'])
+    character = _verify_character_ownership(character_id)
     if not character:
         flash('Character not found')
         return redirect(url_for('dashboard'))
-    return render_template('sheet.html', character=character)
+    
+    inventory = models.get_inventory(character_id)
+    bonuses = models.get_equipped_bonuses(character_id)
+    stat_options = models.STAT_OPTIONS
+    
+    return render_template('sheet.html', character=character, inventory=inventory,
+                           bonuses=bonuses, stat_options=stat_options)
 
 @app.route('/character/<int:character_id>/update', methods=['POST'])
 @login_required
@@ -186,6 +195,122 @@ def delete_character(character_id):
     models.delete_character(character_id, session['user_id'])
     flash('Character deleted')
     return redirect(url_for('dashboard'))
+
+
+# --- Inventory Routes ---
+
+@app.route('/character/<int:character_id>/inventory/add', methods=['POST'])
+@login_required
+def add_inventory_item(character_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+    
+    name = request.form.get('item_name', '').strip()
+    if not name:
+        flash('Item name is required')
+        return redirect(url_for('view_character', character_id=character_id))
+    
+    description = request.form.get('item_description', '').strip()
+    location = request.form.get('item_location', '').strip()
+    quantity_str = request.form.get('item_quantity', '').strip()
+    quantity = int(quantity_str) if quantity_str else None
+    
+    # Parse properties from form
+    properties = _parse_properties_from_form(request.form)
+    
+    models.add_inventory_item(character_id, name, description, location, quantity, properties)
+    flash(f'{name} added to inventory')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/inventory/<int:item_id>/update', methods=['POST'])
+@login_required
+def update_inventory_item(character_id, item_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+    
+    name = request.form.get('item_name', '').strip()
+    if not name:
+        flash('Item name is required')
+        return redirect(url_for('view_character', character_id=character_id))
+    
+    description = request.form.get('item_description', '').strip()
+    location = request.form.get('item_location', '').strip()
+    quantity_str = request.form.get('item_quantity', '').strip()
+    quantity = int(quantity_str) if quantity_str else None
+    
+    properties = _parse_properties_from_form(request.form)
+    
+    models.update_inventory_item(item_id, character_id, name, description, location, quantity, properties)
+    flash(f'{name} updated')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/inventory/<int:item_id>/delete', methods=['POST'])
+@login_required
+def delete_inventory_item(character_id, item_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+    
+    models.delete_inventory_item(item_id, character_id)
+    flash('Item removed from inventory')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/inventory/<int:item_id>/toggle-equip', methods=['POST'])
+@login_required
+def toggle_equip_item(character_id, item_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+    
+    new_status = models.toggle_equip_item(item_id, character_id)
+    if new_status is not None:
+        item = models.get_inventory_item(item_id, character_id)
+        status_text = 'equipped' if new_status else 'unequipped'
+        flash(f"{item['name']} {status_text}")
+    
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/inventory/<int:item_id>/json')
+@login_required
+def get_inventory_item_json(character_id, item_id):
+    """Return item data as JSON for the edit modal."""
+    character = _verify_character_ownership(character_id)
+    if not character:
+        return jsonify({'error': 'Not found'}), 404
+    
+    item = models.get_inventory_item(item_id, character_id)
+    if not item:
+        return jsonify({'error': 'Item not found'}), 404
+    
+    return jsonify(item)
+
+
+def _parse_properties_from_form(form):
+    """Parse dynamic property fields from the form submission."""
+    properties = []
+    i = 0
+    while True:
+        stat_key = f'prop_stat_{i}'
+        value_key = f'prop_value_{i}'
+        if stat_key not in form:
+            break
+        stat = form.get(stat_key, '').strip()
+        value_str = form.get(value_key, '').strip()
+        if stat and value_str:
+            try:
+                value = int(value_str)
+                properties.append({'stat_modified': stat, 'value': value})
+            except ValueError:
+                pass
+        i += 1
+    return properties
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
