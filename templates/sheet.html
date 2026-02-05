@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}{{ character.name }} - Character Compendium{% endblock %}
+
+{% block content %}
+<div class="character-sheet">
+    <form method="POST" action="{{ url_for('update_character', character_id=character.id) }}">
+        
+        <!-- Header Section -->
+        <div class="sheet-header">
+            <div class="form-group">
+                <label for="name">Character Name</label>
+                <input type="text" id="name" name="name" value="{{ character.name }}" class="input-large">
+            </div>
+            <div class="header-row">
+                <div class="form-group">
+                    <label for="class">Class</label>
+                    <input type="text" id="class" name="class" value="{{ character.class or '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="level">Level</label>
+                    <input type="number" id="level" name="level" value="{{ character.level }}" min="1" max="20">
+                </div>
+                <div class="form-group">
+                    <label for="race">Race</label>
+                    <input type="text" id="race" name="race" value="{{ character.race or '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="sheet-columns">
+            <!-- Left Column -->
+            <div class="left-column">
+                
+                <!-- Ability Scores -->
+                <div class="section ability-scores">
+                    <h3>Ability Scores</h3>
+                    
+                    <div class="ability-score">
+                        <label>Strength</label>
+                        <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input">
+                        <div class="modifier">{{ ((character.str_score - 10) // 2) if character.str_score >= 10 else ((character.str_score - 11) // 2) }}</div>
+                    </div>
+                    
+                    <div class="ability-score">
+                        <label>Intelligence</label>
+                        <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input">
+                        <div class="modifier">{{ ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) }}</div>
+                    </div>
+                </div>
+
+                <!-- Proficiency Bonus -->
+                <div class="section proficiency-section">
+                    <label for="proficiency_bonus">Proficiency Bonus</label>
+                    <input type="number" name="proficiency_bonus" value="{{ character.proficiency_bonus }}" min="0" class="bonus-input">
+                </div>
+
+                <!-- Saving Throws -->
+                <div class="section saves">
+                    <h3>Saving Throws</h3>
+                    <div class="skill-item">
+                        <input type="checkbox" id="str_save_prof" name="str_save_prof" value="1" {% if character.str_save_prof %}checked{% endif %}>
+                        <label for="str_save_prof">Strength</label>
+                        <span class="skill-bonus">
+                            {% set str_mod = ((character.str_score - 10) // 2) if character.str_score >= 10 else ((character.str_score - 11) // 2) %}
+                            {% if character.str_save_prof %}
+                                {{ str_mod + character.proficiency_bonus }}
+                            {% else %}
+                                {{ str_mod }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="skill-item">
+                        <input type="checkbox" id="int_save_prof" name="int_save_prof" value="1" {% if character.int_save_prof %}checked{% endif %}>
+                        <label for="int_save_prof">Intelligence</label>
+                        <span class="skill-bonus">
+                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
+                            {% if character.int_save_prof %}
+                                {{ int_mod + character.proficiency_bonus }}
+                            {% else %}
+                                {{ int_mod }}
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Skills -->
+                <div class="section skills">
+                    <h3>Skills</h3>
+                    
+                    <div class="skill-item">
+                        <input type="checkbox" id="athletics_prof" name="athletics_prof" value="1" {% if character.athletics_prof %}checked{% endif %}>
+                        <label for="athletics_prof">Athletics (Str)</label>
+                        <span class="skill-bonus">
+                            {% set str_mod = ((character.str_score - 10) // 2) if character.str_score >= 10 else ((character.str_score - 11) // 2) %}
+                            {% if character.athletics_prof %}
+                                {{ str_mod + character.proficiency_bonus }}
+                            {% else %}
+                                {{ str_mod }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <input type="checkbox" id="arcana_prof" name="arcana_prof" value="1" {% if character.arcana_prof %}checked{% endif %}>
+                        <label for="arcana_prof">Arcana (Int)</label>
+                        <span class="skill-bonus">
+                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
+                            {% if character.arcana_prof %}
+                                {{ int_mod + character.proficiency_bonus }}
+                            {% else %}
+                                {{ int_mod }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <input type="checkbox" id="history_prof" name="history_prof" value="1" {% if character.history_prof %}checked{% endif %}>
+                        <label for="history_prof">History (Int)</label>
+                        <span class="skill-bonus">
+                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
+                            {% if character.history_prof %}
+                                {{ int_mod + character.proficiency_bonus }}
+                            {% else %}
+                                {{ int_mod }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <input type="checkbox" id="investigation_prof" name="investigation_prof" value="1" {% if character.investigation_prof %}checked{% endif %}>
+                        <label for="investigation_prof">Investigation (Int)</label>
+                        <span class="skill-bonus">
+                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
+                            {% if character.investigation_prof %}
+                                {{ int_mod + character.proficiency_bonus }}
+                            {% else %}
+                                {{ int_mod }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <input type="checkbox" id="nature_prof" name="nature_prof" value="1" {% if character.nature_prof %}checked{% endif %}>
+                        <label for="nature_prof">Nature (Int)</label>
+                        <span class="skill-bonus">
+                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
+                            {% if character.nature_prof %}
+                                {{ int_mod + character.proficiency_bonus }}
+                            {% else %}
+                                {{ int_mod }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <input type="checkbox" id="religion_prof" name="religion_prof" value="1" {% if character.religion_prof %}checked{% endif %}>
+                        <label for="religion_prof">Religion (Int)</label>
+                        <span class="skill-bonus">
+                            {% set int_mod = ((character.int_score - 10) // 2) if character.int_score >= 10 else ((character.int_score - 11) // 2) %}
+                            {% if character.religion_prof %}
+                                {{ int_mod + character.proficiency_bonus }}
+                            {% else %}
+                                {{ int_mod }}
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="right-column">
+                
+                <!-- Combat Stats -->
+                <div class="combat-stats">
+                    <div class="stat-box">
+                        <label for="ac">Armor Class</label>
+                        <input type="number" name="ac" value="{{ character.ac }}" min="0" class="stat-input">
+                    </div>
+                    <div class="stat-box">
+                        <label>Hit Points</label>
+                        <div class="hp-inputs">
+                            <input type="number" name="hp_current" value="{{ character.hp_current }}" min="0" class="stat-input" placeholder="Current">
+                            <span>/</span>
+                            <input type="number" name="hp_max" value="{{ character.hp_max }}" min="0" class="stat-input" placeholder="Max">
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <label>Mana</label>
+                        <div class="hp-inputs">
+                            <input type="number" name="mana_current" value="{{ character.mana_current }}" min="0" class="stat-input" placeholder="Current">
+                            <span>/</span>
+                            <input type="number" name="mana_max" value="{{ character.mana_max }}" min="0" class="stat-input" placeholder="Max">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Equipment -->
+                <div class="section text-section">
+                    <h3>Equipment</h3>
+                    <textarea name="equipment" rows="6">{{ character.equipment or '' }}</textarea>
+                </div>
+
+                <!-- Features & Traits -->
+                <div class="section text-section">
+                    <h3>Features & Traits</h3>
+                    <textarea name="features" rows="8">{{ character.features or '' }}</textarea>
+                </div>
+
+                <!-- Custom Abilities -->
+                <div class="section text-section">
+                    <h3>Custom Abilities</h3>
+                    <textarea name="custom_abilities" rows="8">{{ character.custom_abilities or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="sheet-footer">
+            <button type="submit" class="btn btn-primary btn-large">Save Changes</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

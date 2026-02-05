@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Character Compendium{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h2>Your Characters</h2>
+        <form method="POST" action="{{ url_for('new_character') }}">
+            <button type="submit" class="btn btn-primary">+ New Character</button>
+        </form>
+    </div>
+
+    {% if characters %}
+        <div class="character-grid">
+            {% for character in characters %}
+                <div class="character-card">
+                    <div class="character-card-header">
+                        <h3>{{ character.name }}</h3>
+                        <span class="character-level">Level {{ character.level }}</span>
+                    </div>
+                    <div class="character-card-info">
+                        {% if character.class %}<p>{{ character.class }}</p>{% endif %}
+                        {% if character.race %}<p>{{ character.race }}</p>{% endif %}
+                    </div>
+                    <div class="character-card-actions">
+                        <a href="{{ url_for('view_character', character_id=character.id) }}" class="btn btn-secondary">View</a>
+                        <form method="POST" action="{{ url_for('delete_character', character_id=character.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this character?')">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>You don't have any characters yet. Create your first one!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
