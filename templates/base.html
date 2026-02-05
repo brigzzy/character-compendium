@@ -14,6 +14,9 @@
             <div class="nav-links">
                 <span>{{ session.username }}</span>
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                {% if session.is_admin %}
+                <a href="{{ url_for('admin') }}">Admin</a>
+                {% endif %}
                 <a href="{{ url_for('logout') }}">Logout</a>
             </div>
             {% endif %}

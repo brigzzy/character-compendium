@@ -15,7 +15,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
+            password_hash TEXT NOT NULL,
+            is_admin INTEGER DEFAULT 0
         )
     ''')
     
@@ -53,12 +54,12 @@ def init_db():
     conn.commit()
     conn.close()
 
-def create_user(username, password):
+def create_user(username, password, is_admin=False):
     conn = get_db()
     password_hash = generate_password_hash(password)
     try:
-        conn.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)',
-                     (username, password_hash))
+        conn.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)',
+                     (username, password_hash, 1 if is_admin else 0))
         conn.commit()
         return True
     except sqlite3.IntegrityError:
@@ -145,5 +146,32 @@ def delete_character(character_id, user_id):
     conn = get_db()
     conn.execute('DELETE FROM characters WHERE id = ? AND user_id = ?',
                  (character_id, user_id))
+    conn.commit()
+    conn.close()
+
+def users_exist():
+    conn = get_db()
+    result = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()
+    conn.close()
+    return result['count'] > 0
+
+def get_all_users():
+    conn = get_db()
+    users = conn.execute('SELECT id, username, is_admin FROM users ORDER BY username').fetchall()
+    conn.close()
+    return [dict(user) for user in users]
+
+def update_user_admin_status(user_id, is_admin):
+    conn = get_db()
+    conn.execute('UPDATE users SET is_admin = ? WHERE id = ?', (1 if is_admin else 0, user_id))
+    conn.commit()
+    conn.close()
+
+def delete_user(user_id):
+    conn = get_db()
+    # Delete user's characters first
+    conn.execute('DELETE FROM characters WHERE user_id = ?', (user_id,))
+    # Delete user
+    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
     conn.commit()
     conn.close()

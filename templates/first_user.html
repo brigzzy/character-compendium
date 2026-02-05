@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}First User Setup - Character Compendium{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-box">
+        <h2>Create Admin Account</h2>
+        <p style="margin-bottom: 1.5rem; color: #666;">No users exist yet. Create the first admin account.</p>
+        <form method="POST">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+            </div>
+            <button type="submit" class="btn btn-primary">Create Admin Account</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
