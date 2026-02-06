@@ -796,11 +796,20 @@ main {
     background-color: #219a52;
 }
 
+.inline-form {
+    display: inline;
+}
+
 .empty-inventory {
     text-align: center;
     padding: 1.5rem;
     color: #999;
     font-style: italic;
+}
+
+/* Standalone inventory section (outside the main form) */
+.character-sheet > .inventory-section {
+    margin-top: 2rem;
 }
 
 

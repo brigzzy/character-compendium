@@ -37,24 +37,24 @@
         const characterId = form.dataset.characterId;
 
         title.textContent = 'Edit Item';
-        form.action = `/character/${characterId}/inventory/${itemId}/update`;
+        form.action = '/character/' + characterId + '/inventory/' + itemId + '/update';
 
         // Fetch item data
-        fetch(`/character/${characterId}/inventory/${itemId}/json`)
-            .then(r => r.json())
-            .then(item => {
+        fetch('/character/' + characterId + '/inventory/' + itemId + '/json')
+            .then(function(r) { return r.json(); })
+            .then(function(item) {
                 document.getElementById('item-name').value = item.name || '';
                 document.getElementById('item-description').value = item.description || '';
                 document.getElementById('item-location').value = item.location || '';
                 document.getElementById('item-quantity').value = item.quantity != null ? item.quantity : '';
 
                 // Rebuild properties
-                const container = document.getElementById('properties-container');
+                var container = document.getElementById('properties-container');
                 container.innerHTML = '';
                 propertyIndex = 0;
 
                 if (item.properties && item.properties.length > 0) {
-                    item.properties.forEach(prop => {
+                    item.properties.forEach(function(prop) {
                         addPropertyRow(prop.stat_modified, prop.value);
                     });
                 }
@@ -62,7 +62,7 @@
                 modal.classList.add('active');
                 document.getElementById('item-name').focus();
             })
-            .catch(() => {
+            .catch(function() {
                 alert('Failed to load item data');
             });
     };
@@ -73,7 +73,7 @@
 
     // Close modal on backdrop click
     document.addEventListener('click', function(e) {
-        const modal = document.getElementById('inventory-modal');
+        var modal = document.getElementById('inventory-modal');
         if (modal && e.target === modal) {
             closeItemModal();
         }
@@ -89,31 +89,34 @@
     // --- Property rows ---
 
     window.addPropertyRow = function(stat, value) {
-        const container = document.getElementById('properties-container');
-        const idx = propertyIndex++;
+        var container = document.getElementById('properties-container');
+        var idx = propertyIndex++;
 
-        const row = document.createElement('div');
+        var row = document.createElement('div');
         row.className = 'property-row';
-        row.innerHTML = `
-            <select name="prop_stat_${idx}" class="property-select" required>
-                <option value="">Select stat...</option>
-                ${getStatOptions(stat)}
-            </select>
-            <input type="number" name="prop_value_${idx}" class="property-value" 
-                   placeholder="+/−" value="${value != null ? value : ''}" required>
-            <button type="button" class="btn btn-danger btn-icon" onclick="this.parentElement.remove()" title="Remove property">✕</button>
-        `;
+        row.innerHTML =
+            '<select name="prop_stat_' + idx + '" class="property-select" required>' +
+                '<option value="">Select stat...</option>' +
+                getStatOptions(stat) +
+            '</select>' +
+            '<input type="number" name="prop_value_' + idx + '" class="property-value" ' +
+                   'placeholder="+/−" value="' + (value != null ? value : '') + '" required>' +
+            '<button type="button" class="btn btn-danger btn-icon" onclick="this.parentElement.remove()" title="Remove property">✕</button>';
 
         container.appendChild(row);
     };
 
     function getStatOptions(selectedValue) {
-        const modal = document.getElementById('inventory-modal');
-        const options = JSON.parse(modal.dataset.statOptions || '[]');
+        var modal = document.getElementById('inventory-modal');
+        var options = JSON.parse(modal.dataset.statOptions || '[]');
         
-        return options.map(([val, label]) => {
-            const selected = val === selectedValue ? ' selected' : '';
-            return `<option value="${val}"${selected}>${label}</option>`;
-        }).join('');
+        var html = '';
+        for (var i = 0; i < options.length; i++) {
+            var val = options[i][0];
+            var label = options[i][1];
+            var selected = val === selectedValue ? ' selected' : '';
+            html += '<option value="' + val + '"' + selected + '>' + label + '</option>';
+        }
+        return html;
     }
 })();
