@@ -116,6 +116,17 @@ main {
     font-size: 1.1rem;
 }
 
+.btn-small {
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+}
+
+.btn-icon {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
 /* Auth Pages */
 .auth-container {
     display: flex;
@@ -529,15 +540,117 @@ main {
     color: white;
 }
 
-.btn-small {
-    padding: 0.4rem 1rem;
-    font-size: 0.9rem;
+
+/* ================================================
+   EFFECTIVE STAT VALUE DISPLAYS
+   ================================================ */
+
+/* Large effective value for stat boxes (AC) */
+.effective-stat {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
 }
 
-.btn-icon {
-    padding: 0.3rem 0.6rem;
+/* Inline effective value for HP/Mana max */
+.effective-stat-inline {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+    min-width: 40px;
+    text-align: center;
+}
+
+/* Row that shows base input + bonus tag under the effective value */
+.base-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+}
+
+.base-label {
+    font-size: 0.75rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.stat-input-small {
+    width: 50px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.2rem 0.3rem;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    color: #666;
+}
+
+/* Effective score for ability scores */
+.effective-score {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+}
+
+.base-score-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.score-input-small {
+    width: 45px;
+    text-align: center;
     font-size: 0.85rem;
-    line-height: 1;
+    font-weight: 600;
+    padding: 0.15rem 0.25rem;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    color: #666;
+}
+
+/* Green bonus tag used everywhere */
+.bonus-tag {
+    background: #eaf2e3;
+    color: #3a7a0d;
+    padding: 0.1rem 0.45rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Effective proficiency inline */
+.effective-inline {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.bonus-input-small {
+    width: 45px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.15rem 0.25rem;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    color: #666;
+}
+
+/* Inline bonus marker on saves/skills */
+.equip-bonus-inline {
+    color: #27ae60;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-left: 2px;
 }
 
 
@@ -545,7 +658,6 @@ main {
    INVENTORY STYLES
    ================================================ */
 
-/* Section header with title + button */
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -561,36 +673,49 @@ main {
 .inventory-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
+/* Individual inventory item - collapsed by default */
 .inventory-item {
     background: white;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
-    padding: 0.75rem 1rem;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .inventory-item.equipped {
     border-color: #3498db;
     border-left: 4px solid #3498db;
-    background: #f0f7fd;
 }
 
-.item-header {
+/* Summary row - always visible, clickable */
+.item-summary {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s;
+}
+
+.item-summary:hover {
+    background-color: #f8f9fa;
 }
 
 .item-name-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex-wrap: wrap;
+}
+
+.equip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #3498db;
+    flex-shrink: 0;
 }
 
 .item-name {
@@ -599,39 +724,36 @@ main {
 }
 
 .item-quantity {
-    color: #666;
+    color: #888;
     font-size: 0.9rem;
 }
 
-.badge-equipped {
-    background-color: #3498db;
-    color: white;
-    padding: 0.15rem 0.5rem;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.item-actions {
-    display: flex;
-    gap: 0.35rem;
-    align-items: center;
+.item-expand-icon {
+    color: #999;
+    font-size: 0.85rem;
+    transition: transform 0.2s;
     flex-shrink: 0;
 }
 
-.btn-equip {
-    background-color: #27ae60;
-    color: white;
+.inventory-item.expanded .item-expand-icon {
+    transform: rotate(90deg);
 }
 
-.btn-equip:hover {
-    background-color: #219a52;
+/* Details section - hidden by default */
+.item-details {
+    display: none;
+    padding: 0 1rem 0.75rem 1rem;
+    border-top: 1px solid #eee;
+}
+
+.inventory-item.expanded .item-details {
+    display: block;
 }
 
 .item-location {
     font-size: 0.85rem;
     color: #777;
-    margin-top: 0.35rem;
+    margin-top: 0.5rem;
 }
 
 .item-description {
@@ -657,32 +779,28 @@ main {
     font-weight: 600;
 }
 
+.item-actions {
+    display: flex;
+    gap: 0.35rem;
+    margin-top: 0.65rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+}
+
+.btn-equip {
+    background-color: #27ae60;
+    color: white;
+}
+
+.btn-equip:hover {
+    background-color: #219a52;
+}
+
 .empty-inventory {
     text-align: center;
     padding: 1.5rem;
     color: #999;
     font-style: italic;
-}
-
-/* Equipment bonus indicators */
-.equip-bonus {
-    color: #27ae60;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-.equip-bonus-stat {
-    color: #27ae60;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-top: 0.25rem;
-}
-
-.equip-bonus-inline {
-    color: #27ae60;
-    font-size: 0.75rem;
-    font-weight: bold;
-    margin-left: 2px;
 }
 
 
@@ -779,7 +897,6 @@ main {
     gap: 1rem;
 }
 
-/* Property rows in modal */
 #properties-container {
     display: flex;
     flex-direction: column;
@@ -820,47 +937,41 @@ main {
     .sheet-columns {
         grid-template-columns: 1fr;
     }
-    
+
     .header-row {
         grid-template-columns: 1fr;
     }
-    
+
     .combat-stats {
         grid-template-columns: 1fr;
     }
-    
+
     .character-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .dashboard-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
     }
-    
+
     .create-user-form .form-row {
         grid-template-columns: 1fr;
     }
-    
+
     .checkbox-group {
         padding-top: 0;
     }
-    
-    .item-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
+
     .item-actions {
-        width: 100%;
-        justify-content: flex-start;
+        flex-wrap: wrap;
     }
-    
+
     .form-row-modal {
         grid-template-columns: 1fr;
     }
-    
+
     .modal-content {
         margin-top: 1rem;
     }

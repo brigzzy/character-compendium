@@ -1,8 +1,15 @@
-// Inventory Modal Management
+// Inventory Modal & Item Management
 (function() {
     'use strict';
 
     let propertyIndex = 0;
+
+    // --- Collapsible items ---
+
+    window.toggleItemExpand = function(summaryEl) {
+        const item = summaryEl.closest('.inventory-item');
+        item.classList.toggle('expanded');
+    };
 
     // --- Modal open/close ---
 
@@ -101,7 +108,6 @@
     };
 
     function getStatOptions(selectedValue) {
-        // Read stat options from the data attribute on the modal
         const modal = document.getElementById('inventory-modal');
         const options = JSON.parse(modal.dataset.statOptions || '[]');
         
