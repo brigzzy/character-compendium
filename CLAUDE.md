@@ -4,11 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Character Compendium is a D&D 5e character sheet web application built with Flask. It features a custom mana-based spellcasting system (replacing standard spell slots) and an inventory system where equipped items dynamically modify character stats.
+- Character Compendium is a multi user D&D 5e character sheet web application built with Flask. 
+- Letting the user customize things on the sheet is very important
 
 ## Running the Application
 
+### Creating the venv (First run only)
+
 ```bash
+python3 -m venv venv
+```
+
+### Starting the Application
+
+```bash
+source venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
@@ -41,3 +51,4 @@ The `item_properties` table links items to stat modifications (e.g., a sword add
 - **Hardcoded secret key** in `app.py` — known issue, noted in README.
 - **Limited ability scores** — only Strength and Intelligence are implemented (not all six D&D stats).
 - **Skills subset** — only Athletics, Arcana, History, Investigation, Nature, Religion are tracked.
+- Fields should auto calculate wherever possible using D&D 5E rules, but the user should have a way to override all values

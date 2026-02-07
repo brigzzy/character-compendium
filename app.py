@@ -5,6 +5,7 @@ import json
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
+ALLOW_BLANK_PASSWORDS = True
 
 # Initialize database on first run
 models.init_db()
@@ -57,7 +58,7 @@ def login():
         else:
             flash('Invalid username or password')
     
-    return render_template('login.html')
+    return render_template('login.html', dev_mode=ALLOW_BLANK_PASSWORDS)
 
 @app.route('/first-user', methods=['GET', 'POST'])
 def first_user():
@@ -72,7 +73,7 @@ def first_user():
         
         if password != confirm_password:
             flash('Passwords do not match')
-        elif len(password) < 6:
+        elif not ALLOW_BLANK_PASSWORDS and len(password) < 6:
             flash('Password must be at least 6 characters')
         elif models.create_user(username, password, is_admin=True):
             flash('Admin account created! Please log in.')
@@ -80,7 +81,7 @@ def first_user():
         else:
             flash('Error creating account')
     
-    return render_template('first_user.html')
+    return render_template('first_user.html', dev_mode=ALLOW_BLANK_PASSWORDS)
 
 @app.route('/logout')
 def logout():
@@ -91,7 +92,7 @@ def logout():
 @admin_required
 def admin():
     users = models.get_all_users()
-    return render_template('admin.html', users=users)
+    return render_template('admin.html', users=users, dev_mode=ALLOW_BLANK_PASSWORDS)
 
 @app.route('/admin/user/create', methods=['POST'])
 @admin_required
@@ -100,7 +101,7 @@ def admin_create_user():
     password = request.form.get('password')
     is_admin = request.form.get('is_admin') == 'on'
     
-    if len(password) < 6:
+    if not ALLOW_BLANK_PASSWORDS and len(password) < 6:
         flash('Password must be at least 6 characters')
     elif models.create_user(username, password, is_admin):
         flash(f'User {username} created successfully')
@@ -160,10 +161,14 @@ def view_character(character_id):
     
     inventory = models.get_inventory(character_id)
     bonuses = models.get_equipped_bonuses(character_id)
+    feature_bonuses = models.get_feature_bonuses(character_id)
+    for stat, val in feature_bonuses.items():
+        bonuses[stat] = bonuses.get(stat, 0) + val
     stat_options = models.STAT_OPTIONS
-    
+    features = models.get_features(character_id)
+
     return render_template('sheet.html', character=character, inventory=inventory,
-                           bonuses=bonuses, stat_options=stat_options)
+                           bonuses=bonuses, stat_options=stat_options, features=features)
 
 @app.route('/character/<int:character_id>/update', methods=['POST'])
 @login_required
@@ -289,6 +294,78 @@ def get_inventory_item_json(character_id, item_id):
         return jsonify({'error': 'Item not found'}), 404
     
     return jsonify(item)
+
+
+# --- Feature Routes ---
+
+@app.route('/character/<int:character_id>/feature/add', methods=['POST'])
+@login_required
+def add_feature(character_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+
+    name = request.form.get('feature_name', '').strip()
+    if not name:
+        flash('Feature name is required')
+        return redirect(url_for('view_character', character_id=character_id))
+
+    description = request.form.get('feature_description', '').strip()
+    source = request.form.get('feature_source', '').strip()
+    if source == 'Other':
+        source = request.form.get('feature_source_custom', '').strip()
+    properties = _parse_properties_from_form(request.form)
+    models.add_feature(character_id, name, description, source, properties)
+    flash(f'{name} added')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/feature/<int:feature_id>/update', methods=['POST'])
+@login_required
+def update_feature(character_id, feature_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+
+    name = request.form.get('feature_name', '').strip()
+    if not name:
+        flash('Feature name is required')
+        return redirect(url_for('view_character', character_id=character_id))
+
+    description = request.form.get('feature_description', '').strip()
+    source = request.form.get('feature_source', '').strip()
+    if source == 'Other':
+        source = request.form.get('feature_source_custom', '').strip()
+    properties = _parse_properties_from_form(request.form)
+    models.update_feature(feature_id, character_id, name, description, source, properties)
+    flash(f'{name} updated')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/feature/<int:feature_id>/delete', methods=['POST'])
+@login_required
+def delete_feature(character_id, feature_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+
+    models.delete_feature(feature_id, character_id)
+    flash('Feature removed')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/feature/<int:feature_id>/json')
+@login_required
+def get_feature_json(character_id, feature_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        return jsonify({'error': 'Not found'}), 404
+
+    feature = models.get_feature(feature_id, character_id)
+    if not feature:
+        return jsonify({'error': 'Feature not found'}), 404
+
+    return jsonify(feature)
 
 
 def _parse_properties_from_form(form):

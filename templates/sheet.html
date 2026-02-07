@@ -210,11 +210,7 @@
                     </div>
                 </div>
 
-                <!-- Features & Traits -->
-                <div class="section text-section">
-                    <h3>Features & Traits</h3>
-                    <textarea name="features" rows="8">{{ character.features or '' }}</textarea>
-                </div>
+                <!-- Features & Traits (rendered outside form below) -->
 
                 <!-- Custom Abilities -->
                 <div class="section text-section">
@@ -296,6 +292,59 @@
     </div>
     <!-- ==================== END INVENTORY ==================== -->
 
+
+    <!-- ==================== FEATURES SECTION (outside the form) ==================== -->
+    <div class="section features-section">
+        <div class="section-header">
+            <h3>Features & Traits</h3>
+            <button type="button" class="btn btn-primary btn-small" onclick="openAddFeatureModal()">+ Add Feature</button>
+        </div>
+
+        {% if features %}
+        <div class="inventory-list">
+            {% for feature in features %}
+            <div class="inventory-item">
+                <div class="item-summary" onclick="toggleItemExpand(this)">
+                    <div class="item-name-row">
+                        <span class="item-name">{{ feature.name }}</span>
+                        {% if feature.source %}
+                        <span class="item-quantity">{{ feature.source }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="item-expand-icon">▸</span>
+                </div>
+                <div class="item-details">
+                    {% if feature.description %}
+                    <div class="item-description">{{ feature.description }}</div>
+                    {% endif %}
+                    {% if feature.properties %}
+                    <div class="item-properties">
+                        {% for prop in feature.properties %}
+                        <span class="item-property-tag">
+                            {{ dict(stat_options)[prop.stat_modified] }}
+                            {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="item-actions">
+                        <button type="button" class="btn btn-small btn-secondary" onclick="openEditFeatureModal({{ feature.id }})">✎ Edit</button>
+                        <form method="POST" action="{{ url_for('delete_feature', character_id=character.id, feature_id=feature.id) }}" class="inline-form">
+                            <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Remove {{ feature.name }}?')">
+                                ✕ Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-inventory">No features yet. Add your first feature!</div>
+        {% endif %}
+    </div>
+    <!-- ==================== END FEATURES ==================== -->
+
 </div>
 
 <!-- ==================== INVENTORY MODAL (standalone form) ==================== -->
@@ -348,5 +397,141 @@
     </div>
 </div>
 
+<!-- ==================== FEATURE MODAL ==================== -->
+<div id="feature-modal" class="modal-overlay"
+     data-stat-options='{{ stat_options | tojson }}'>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="feature-modal-title">Add Feature</h3>
+            <button type="button" class="modal-close" onclick="closeFeatureModal()">✕</button>
+        </div>
+        <form method="POST"
+              data-add-url="{{ url_for('add_feature', character_id=character.id) }}"
+              data-character-id="{{ character.id }}"
+              action="{{ url_for('add_feature', character_id=character.id) }}">
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="feature-name">Feature Name</label>
+                    <input type="text" id="feature-name" name="feature_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="feature-source">Source</label>
+                    <select id="feature-source" name="feature_source" onchange="toggleFeatureSourceCustom()">
+                        <option value="">— None —</option>
+                        <option value="Class">Class</option>
+                        <option value="Feat">Feat</option>
+                        <option value="Species">Species</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <input type="text" id="feature-source-custom" name="feature_source_custom"
+                           placeholder="Enter custom source" style="display:none; margin-top:0.5rem;">
+                </div>
+
+                <div class="form-group">
+                    <label for="feature-description">Description</label>
+                    <textarea id="feature-description" name="feature_description" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Properties</label>
+                    <div id="feature-properties-container"></div>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addFeaturePropertyRow()">+ Add Property</button>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeFeatureModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Feature</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='inventory.js') }}"></script>
+<script src="{{ url_for('static', filename='features.js') }}"></script>
+<script>
+// Double-click-to-edit for number inputs on the character sheet form
+(function() {
+    const form = document.querySelector('.character-sheet > form');
+    if (!form) return;
+
+    const numberInputs = Array.from(form.querySelectorAll('input[type="number"]'));
+
+    function makeEditable(input) {
+        input.readOnly = false;
+        input.classList.remove('field-readonly');
+        input.focus();
+        input.select();
+    }
+
+    function makeReadonly(input) {
+        input.readOnly = true;
+        input.classList.add('field-readonly');
+    }
+
+    // Auto-calculate proficiency bonus from level (5e formula)
+    const levelInput = form.querySelector('input[name="level"]');
+    const profInput = form.querySelector('input[name="proficiency_bonus"]');
+    const profSection = profInput ? profInput.closest('.proficiency-section') : null;
+
+    function calcProfBonus(level) {
+        const lvl = Math.max(1, Math.min(20, parseInt(level) || 1));
+        return Math.floor((lvl - 1) / 4) + 2;
+    }
+
+    function updateProficiency() {
+        if (!levelInput || !profInput) return;
+        const newProf = calcProfBonus(levelInput.value);
+        profInput.value = newProf;
+
+        // Update effective display if equipment bonuses are shown
+        if (profSection) {
+            const effectiveSpan = profSection.querySelector('.effective-inline');
+            const bonusTag = profSection.querySelector('.bonus-tag');
+            if (effectiveSpan && bonusTag) {
+                const equipBonus = parseInt(bonusTag.textContent.replace('+', '')) || 0;
+                effectiveSpan.textContent = newProf + equipBonus;
+            }
+        }
+    }
+
+    if (levelInput) {
+        levelInput.addEventListener('input', updateProficiency);
+    }
+
+    // Initialize all number inputs as readonly
+    numberInputs.forEach(input => {
+        makeReadonly(input);
+
+        input.addEventListener('dblclick', () => {
+            makeEditable(input);
+        });
+
+        input.addEventListener('blur', () => {
+            makeReadonly(input);
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (input.readOnly) return;
+
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const idx = numberInputs.indexOf(input);
+                const next = e.shiftKey
+                    ? (idx - 1 + numberInputs.length) % numberInputs.length
+                    : (idx + 1) % numberInputs.length;
+                makeReadonly(input);
+                makeEditable(numberInputs[next]);
+            }
+
+            if (e.key === 'Enter' || e.key === 'Escape') {
+                e.preventDefault();
+                makeReadonly(input);
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}

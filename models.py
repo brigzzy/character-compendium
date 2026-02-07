@@ -75,6 +75,28 @@ def init_db():
         )
     ''')
     
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS features (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            source TEXT DEFAULT '',
+            sort_order INTEGER DEFAULT 0,
+            FOREIGN KEY (character_id) REFERENCES characters (id) ON DELETE CASCADE
+        )
+    ''')
+
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS feature_properties (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            feature_id INTEGER NOT NULL,
+            stat_modified TEXT NOT NULL,
+            value INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (feature_id) REFERENCES features (id) ON DELETE CASCADE
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -360,6 +382,128 @@ def get_equipped_bonuses(character_id):
     ''', (character_id,)).fetchall()
     conn.close()
     
+    bonuses = {}
+    for row in rows:
+        bonuses[row['stat_modified']] = row['total']
+    return bonuses
+
+
+# --- Features Functions ---
+
+def get_features(character_id):
+    """Get all features with their properties for a character."""
+    conn = get_db()
+    features = conn.execute(
+        'SELECT * FROM features WHERE character_id = ? ORDER BY sort_order, name',
+        (character_id,)
+    ).fetchall()
+
+    result = []
+    for feature in features:
+        f_dict = dict(feature)
+        props = conn.execute(
+            'SELECT * FROM feature_properties WHERE feature_id = ? ORDER BY id',
+            (f_dict['id'],)
+        ).fetchall()
+        f_dict['properties'] = [dict(p) for p in props]
+        result.append(f_dict)
+
+    conn.close()
+    return result
+
+def get_feature(feature_id, character_id):
+    """Get a single feature with properties and ownership check."""
+    conn = get_db()
+    feature = conn.execute(
+        'SELECT * FROM features WHERE id = ? AND character_id = ?',
+        (feature_id, character_id)
+    ).fetchone()
+
+    if not feature:
+        conn.close()
+        return None
+
+    f_dict = dict(feature)
+    props = conn.execute(
+        'SELECT * FROM feature_properties WHERE feature_id = ? ORDER BY id',
+        (f_dict['id'],)
+    ).fetchall()
+    f_dict['properties'] = [dict(p) for p in props]
+
+    conn.close()
+    return f_dict
+
+def add_feature(character_id, name, description, source, properties):
+    """Add a new feature with properties. Returns the new feature id."""
+    conn = get_db()
+    cursor = conn.execute(
+        'INSERT INTO features (character_id, name, description, source) VALUES (?, ?, ?, ?)',
+        (character_id, name, description, source)
+    )
+    feature_id = cursor.lastrowid
+
+    for prop in properties:
+        if prop.get('stat_modified') and prop.get('value') is not None:
+            conn.execute(
+                'INSERT INTO feature_properties (feature_id, stat_modified, value) VALUES (?, ?, ?)',
+                (feature_id, prop['stat_modified'], prop['value'])
+            )
+
+    conn.commit()
+    conn.close()
+    return feature_id
+
+def update_feature(feature_id, character_id, name, description, source, properties):
+    """Update an existing feature and its properties."""
+    conn = get_db()
+    item = conn.execute(
+        'SELECT id FROM features WHERE id = ? AND character_id = ?',
+        (feature_id, character_id)
+    ).fetchone()
+    if not item:
+        conn.close()
+        return False
+
+    conn.execute(
+        'UPDATE features SET name = ?, description = ?, source = ? WHERE id = ?',
+        (name, description, source, feature_id)
+    )
+
+    # Replace all properties
+    conn.execute('DELETE FROM feature_properties WHERE feature_id = ?', (feature_id,))
+    for prop in properties:
+        if prop.get('stat_modified') and prop.get('value') is not None:
+            conn.execute(
+                'INSERT INTO feature_properties (feature_id, stat_modified, value) VALUES (?, ?, ?)',
+                (feature_id, prop['stat_modified'], prop['value'])
+            )
+
+    conn.commit()
+    conn.close()
+    return True
+
+def delete_feature(feature_id, character_id):
+    """Delete a feature and its properties."""
+    conn = get_db()
+    conn.execute(
+        'DELETE FROM features WHERE id = ? AND character_id = ?',
+        (feature_id, character_id)
+    )
+    conn.commit()
+    conn.close()
+
+def get_feature_bonuses(character_id):
+    """Calculate total stat bonuses from all features."""
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT fp.stat_modified, SUM(fp.value) as total
+        FROM feature_properties fp
+        JOIN features f ON fp.feature_id = f.id
+        WHERE f.character_id = ?
+        GROUP BY fp.stat_modified
+    ''', (character_id,)).fetchall()
+    conn.close()
+
     bonuses = {}
     for row in rows:
         bonuses[row['stat_modified']] = row['total']
