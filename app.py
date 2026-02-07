@@ -174,7 +174,7 @@ def view_character(character_id):
 @login_required
 def update_character(character_id):
     data = request.form.to_dict()
-    
+
     # Convert numeric fields
     numeric_fields = [
         'level', 'hp_current', 'hp_max', 'ac', 'proficiency_bonus',
@@ -182,17 +182,45 @@ def update_character(character_id):
         'athletics_prof', 'arcana_prof', 'history_prof', 'investigation_prof',
         'nature_prof', 'religion_prof', 'mana_current', 'mana_max'
     ]
-    
+
     for field in numeric_fields:
         if field in data:
             try:
                 data[field] = int(data[field]) if data[field] else 0
             except ValueError:
                 data[field] = 0
-    
+
     models.update_character(character_id, session['user_id'], data)
     flash('Character updated!')
     return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/update_field', methods=['POST'])
+@login_required
+def update_field(character_id):
+    data = request.get_json()
+    if not data or 'field' not in data or 'value' not in data:
+        return jsonify({'ok': False, 'error': 'Missing field or value'}), 400
+
+    numeric_fields = [
+        'level', 'hp_current', 'hp_max', 'ac', 'proficiency_bonus',
+        'str_score', 'str_save_prof', 'int_score', 'int_save_prof',
+        'athletics_prof', 'arcana_prof', 'history_prof', 'investigation_prof',
+        'nature_prof', 'religion_prof', 'mana_current', 'mana_max'
+    ]
+
+    field = data['field']
+    value = data['value']
+
+    if field in numeric_fields:
+        try:
+            value = int(value) if value != '' else 0
+        except ValueError:
+            value = 0
+
+    result = models.update_character(character_id, session['user_id'], {field: value})
+    if result:
+        return jsonify({'ok': True})
+    return jsonify({'ok': False, 'error': 'Update failed'}), 400
 
 @app.route('/character/<int:character_id>/delete', methods=['POST'])
 @login_required

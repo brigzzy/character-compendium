@@ -17,8 +17,9 @@
 <div class="character-sheet">
 
     <!-- ==================== CHARACTER DATA FORM ==================== -->
-    <form method="POST" action="{{ url_for('update_character', character_id=character.id) }}">
-        
+    <form id="character-form" method="POST" action="{{ url_for('update_character', character_id=character.id) }}"
+          data-field-url="{{ url_for('update_field', character_id=character.id) }}">
+
         <!-- Header Section -->
         <div class="sheet-header">
             <div class="form-group">
@@ -40,326 +41,311 @@
                 </div>
             </div>
         </div>
-
-        <div class="sheet-columns">
-            <!-- Left Column -->
-            <div class="left-column">
-                
-                <!-- Ability Scores -->
-                <div class="section ability-scores">
-                    <h3>Ability Scores</h3>
-                    
-                    <div class="ability-score">
-                        <label>Strength</label>
-                        {% if str_bonus %}
-                        <div class="effective-score">{{ effective_str }}</div>
-                        <div class="base-score-row">
-                            <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input-small">
-                            <span class="bonus-tag">+{{ str_bonus }}</span>
-                        </div>
-                        {% else %}
-                        <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input">
-                        {% endif %}
-                        <div class="modifier">{{ str_mod }}</div>
-                    </div>
-                    
-                    <div class="ability-score">
-                        <label>Intelligence</label>
-                        {% if int_bonus %}
-                        <div class="effective-score">{{ effective_int }}</div>
-                        <div class="base-score-row">
-                            <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input-small">
-                            <span class="bonus-tag">+{{ int_bonus }}</span>
-                        </div>
-                        {% else %}
-                        <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input">
-                        {% endif %}
-                        <div class="modifier">{{ int_mod }}</div>
-                    </div>
-                </div>
-
-                <!-- Proficiency Bonus -->
-                <div class="section proficiency-section">
-                    <label for="proficiency_bonus">Proficiency Bonus</label>
-                    {% if prof_bonus %}
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span class="effective-inline">{{ effective_prof }}</span>
-                        <input type="number" name="proficiency_bonus" value="{{ character.proficiency_bonus }}" min="0" class="bonus-input-small">
-                        <span class="bonus-tag">+{{ prof_bonus }}</span>
-                    </div>
-                    {% else %}
-                    <input type="number" name="proficiency_bonus" value="{{ character.proficiency_bonus }}" min="0" class="bonus-input">
-                    {% endif %}
-                </div>
-
-                <!-- Saving Throws -->
-                <div class="section saves">
-                    <h3>Saving Throws</h3>
-                    
-                    <div class="skill-item">
-                        <input type="checkbox" id="str_save_prof" name="str_save_prof" value="1" {% if character.str_save_prof %}checked{% endif %}>
-                        <label for="str_save_prof">Strength</label>
-                        <span class="skill-bonus">
-                            {% set str_save_equip = bonuses.get('str_save', 0) %}
-                            {{ str_mod + (effective_prof if character.str_save_prof else 0) + str_save_equip }}
-                            {% if str_save_equip %}<span class="equip-bonus-inline" title="Includes +{{ str_save_equip }} from items">*</span>{% endif %}
-                        </span>
-                    </div>
-                    <div class="skill-item">
-                        <input type="checkbox" id="int_save_prof" name="int_save_prof" value="1" {% if character.int_save_prof %}checked{% endif %}>
-                        <label for="int_save_prof">Intelligence</label>
-                        <span class="skill-bonus">
-                            {% set int_save_equip = bonuses.get('int_save', 0) %}
-                            {{ int_mod + (effective_prof if character.int_save_prof else 0) + int_save_equip }}
-                            {% if int_save_equip %}<span class="equip-bonus-inline" title="Includes +{{ int_save_equip }} from items">*</span>{% endif %}
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Skills -->
-                <div class="section skills">
-                    <h3>Skills</h3>
-                    
-                    {% set skill_list = [
-                        ('athletics_prof', 'Athletics (Str)', str_mod, 'athletics'),
-                        ('arcana_prof', 'Arcana (Int)', int_mod, 'arcana'),
-                        ('history_prof', 'History (Int)', int_mod, 'history'),
-                        ('investigation_prof', 'Investigation (Int)', int_mod, 'investigation'),
-                        ('nature_prof', 'Nature (Int)', int_mod, 'nature'),
-                        ('religion_prof', 'Religion (Int)', int_mod, 'religion'),
-                    ] %}
-                    
-                    {% for field, label, base_mod, bonus_key in skill_list %}
-                    {% set skill_equip = bonuses.get(bonus_key, 0) %}
-                    <div class="skill-item">
-                        <input type="checkbox" id="{{ field }}" name="{{ field }}" value="1" {% if character[field] %}checked{% endif %}>
-                        <label for="{{ field }}">{{ label }}</label>
-                        <span class="skill-bonus">
-                            {{ base_mod + (effective_prof if character[field] else 0) + skill_equip }}
-                            {% if skill_equip %}<span class="equip-bonus-inline" title="Includes +{{ skill_equip }} from items">*</span>{% endif %}
-                        </span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Right Column -->
-            <div class="right-column">
-                
-                <!-- Combat Stats -->
-                <div class="combat-stats">
-                    {% set ac_bonus = bonuses.get('ac', 0) %}
-                    <div class="stat-box">
-                        <label>Armor Class</label>
-                        {% if ac_bonus %}
-                        <div class="effective-stat">{{ character.ac + ac_bonus }}</div>
-                        <div class="base-stat-row">
-                            <span class="base-label">Base</span>
-                            <input type="number" name="ac" value="{{ character.ac }}" min="0" class="stat-input-small">
-                            <span class="bonus-tag">+{{ ac_bonus }}</span>
-                        </div>
-                        {% else %}
-                        <input type="number" name="ac" value="{{ character.ac }}" min="0" class="stat-input">
-                        {% endif %}
-                    </div>
-
-                    {% set hp_bonus = bonuses.get('hp_max', 0) %}
-                    <div class="stat-box">
-                        <label>Hit Points</label>
-                        {% if hp_bonus %}
-                        <div class="hp-inputs">
-                            <input type="number" name="hp_current" value="{{ character.hp_current }}" min="0" class="stat-input" placeholder="Current">
-                            <span>/</span>
-                            <span class="effective-stat-inline">{{ character.hp_max + hp_bonus }}</span>
-                        </div>
-                        <div class="base-stat-row">
-                            <span class="base-label">Base max</span>
-                            <input type="number" name="hp_max" value="{{ character.hp_max }}" min="0" class="stat-input-small">
-                            <span class="bonus-tag">+{{ hp_bonus }}</span>
-                        </div>
-                        {% else %}
-                        <div class="hp-inputs">
-                            <input type="number" name="hp_current" value="{{ character.hp_current }}" min="0" class="stat-input" placeholder="Current">
-                            <span>/</span>
-                            <input type="number" name="hp_max" value="{{ character.hp_max }}" min="0" class="stat-input" placeholder="Max">
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    {% set mana_bonus = bonuses.get('mana_max', 0) %}
-                    <div class="stat-box">
-                        <label>Mana</label>
-                        {% if mana_bonus %}
-                        <div class="hp-inputs">
-                            <input type="number" name="mana_current" value="{{ character.mana_current }}" min="0" class="stat-input" placeholder="Current">
-                            <span>/</span>
-                            <span class="effective-stat-inline">{{ character.mana_max + mana_bonus }}</span>
-                        </div>
-                        <div class="base-stat-row">
-                            <span class="base-label">Base max</span>
-                            <input type="number" name="mana_max" value="{{ character.mana_max }}" min="0" class="stat-input-small">
-                            <span class="bonus-tag">+{{ mana_bonus }}</span>
-                        </div>
-                        {% else %}
-                        <div class="hp-inputs">
-                            <input type="number" name="mana_current" value="{{ character.mana_current }}" min="0" class="stat-input" placeholder="Current">
-                            <span>/</span>
-                            <input type="number" name="mana_max" value="{{ character.mana_max }}" min="0" class="stat-input" placeholder="Max">
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Features & Traits (rendered outside form below) -->
-
-                <!-- Custom Abilities -->
-                <div class="section text-section">
-                    <h3>Custom Abilities</h3>
-                    <textarea name="custom_abilities" rows="8">{{ character.custom_abilities or '' }}</textarea>
-                </div>
-            </div>
-        </div>
-
-        <!-- Save Button -->
-        <div class="sheet-footer">
-            <button type="submit" class="btn btn-primary btn-large">Save Changes</button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
-        </div>
     </form>
     <!-- ==================== END CHARACTER DATA FORM ==================== -->
 
+    <div class="sheet-columns">
+        <!-- Left Column -->
+        <div class="left-column">
 
-    <!-- ==================== INVENTORY SECTION (outside the form) ==================== -->
-    <div class="section inventory-section">
-        <div class="section-header">
-            <h3>Inventory</h3>
-            <button type="button" class="btn btn-primary btn-small" onclick="openAddItemModal()">+ Add Item</button>
-        </div>
+            <!-- Ability Scores -->
+            <div class="section ability-scores">
+                <h3>Ability Scores</h3>
 
-        {% if inventory %}
-        <div class="inventory-list">
-            {% for item in inventory %}
-            <div class="inventory-item {{ 'equipped' if item.equipped else '' }}">
-                <div class="item-summary" onclick="toggleItemExpand(this)">
-                    <div class="item-name-row">
-                        {% if item.equipped %}
-                        <span class="equip-dot" title="Equipped"></span>
-                        {% endif %}
-                        <span class="item-name">{{ item.name }}</span>
-                        {% if item.quantity is not none %}
-                        <span class="item-quantity">×{{ item.quantity }}</span>
-                        {% endif %}
+                <div class="ability-score" data-ability="str" data-equip-bonus="{{ str_bonus }}">
+                    <label>Strength</label>
+                    {% if str_bonus %}
+                    <div class="effective-score">{{ effective_str }}</div>
+                    <div class="base-score-row">
+                        <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input-small" form="character-form">
+                        <span class="bonus-tag">+{{ str_bonus }}</span>
                     </div>
-                    <span class="item-expand-icon">▸</span>
+                    {% else %}
+                    <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input" form="character-form">
+                    {% endif %}
+                    <div class="modifier">{{ str_mod }}</div>
                 </div>
-                <div class="item-details">
-                    {% if item.location %}
-                    <div class="item-location">📍 {{ item.location }}</div>
-                    {% endif %}
-                    {% if item.description %}
-                    <div class="item-description">{{ item.description }}</div>
-                    {% endif %}
-                    {% if item.properties %}
-                    <div class="item-properties">
-                        {% for prop in item.properties %}
-                        <span class="item-property-tag">
-                            {{ dict(stat_options)[prop.stat_modified] }}
-                            {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
-                        </span>
-                        {% endfor %}
+
+                <div class="ability-score" data-ability="int" data-equip-bonus="{{ int_bonus }}">
+                    <label>Intelligence</label>
+                    {% if int_bonus %}
+                    <div class="effective-score">{{ effective_int }}</div>
+                    <div class="base-score-row">
+                        <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input-small" form="character-form">
+                        <span class="bonus-tag">+{{ int_bonus }}</span>
                     </div>
+                    {% else %}
+                    <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input" form="character-form">
                     {% endif %}
-                    <div class="item-actions">
-                        <form method="POST" action="{{ url_for('toggle_equip_item', character_id=character.id, item_id=item.id) }}" class="inline-form">
-                            <button type="submit" class="btn btn-small {{ 'btn-secondary' if item.equipped else 'btn-equip' }}">
-                                {{ 'Remove' if item.equipped else '⬆ Equip' }}
-                            </button>
-                        </form>
-                        <button type="button" class="btn btn-small btn-secondary" onclick="openEditItemModal({{ item.id }})">✎ Edit</button>
-                        <form method="POST" action="{{ url_for('delete_inventory_item', character_id=character.id, item_id=item.id) }}" class="inline-form">
-                            <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Remove {{ item.name }} from inventory?')">
-                                ✕ Delete
-                            </button>
-                        </form>
-                    </div>
+                    <div class="modifier">{{ int_mod }}</div>
                 </div>
             </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-inventory">No items yet. Add your first item!</div>
-        {% endif %}
-    </div>
-    <!-- ==================== END INVENTORY ==================== -->
 
-
-    <!-- ==================== FEATURES SECTION (outside the form) ==================== -->
-    <div class="section features-section">
-        <div class="section-header">
-            <h3>Features & Traits</h3>
-            <button type="button" class="btn btn-primary btn-small" onclick="openAddFeatureModal()">+ Add Feature</button>
-        </div>
-
-        {% if features %}
-        <div class="inventory-list">
-            {% for feature in features %}
-            <div class="inventory-item">
-                <div class="item-summary" onclick="toggleItemExpand(this)">
-                    <div class="item-name-row">
-                        <span class="item-name">{{ feature.name }}</span>
-                        {% if feature.source %}
-                        <span class="item-quantity">{{ feature.source }}</span>
-                        {% endif %}
-                    </div>
-                    <span class="item-expand-icon">▸</span>
+            <!-- Proficiency Bonus -->
+            <div class="section proficiency-section">
+                <label for="proficiency_bonus">Proficiency Bonus</label>
+                {% if prof_bonus %}
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="effective-inline">{{ effective_prof }}</span>
+                    <input type="number" name="proficiency_bonus" value="{{ character.proficiency_bonus }}" min="0" class="bonus-input-small" form="character-form">
+                    <span class="bonus-tag">+{{ prof_bonus }}</span>
                 </div>
-                <div class="item-details">
-                    {% if feature.description %}
-                    <div class="item-description">{{ feature.description }}</div>
-                    {% endif %}
-                    {% if feature.properties %}
-                    <div class="item-properties">
-                        {% for prop in feature.properties %}
-                        <span class="item-property-tag">
-                            {{ dict(stat_options)[prop.stat_modified] }}
-                            {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
-                        </span>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    <div class="item-actions">
-                        <button type="button" class="btn btn-small btn-secondary" onclick="openEditFeatureModal({{ feature.id }})">✎ Edit</button>
-                        <form method="POST" action="{{ url_for('delete_feature', character_id=character.id, feature_id=feature.id) }}" class="inline-form">
-                            <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Remove {{ feature.name }}?')">
-                                ✕ Delete
-                            </button>
-                        </form>
-                    </div>
+                {% else %}
+                <input type="number" name="proficiency_bonus" value="{{ character.proficiency_bonus }}" min="0" class="bonus-input" form="character-form">
+                {% endif %}
+            </div>
+
+            <!-- Saving Throws -->
+            <div class="section saves">
+                <h3>Saving Throws</h3>
+
+                <div class="skill-item" data-ability="str" data-equip-bonus="{{ bonuses.get('str_save', 0) }}">
+                    <input type="checkbox" id="str_save_prof" name="str_save_prof" value="1" {% if character.str_save_prof %}checked{% endif %} form="character-form">
+                    <label for="str_save_prof">Strength</label>
+                    <span class="skill-bonus">
+                        {% set str_save_equip = bonuses.get('str_save', 0) %}
+                        {{ str_mod + (effective_prof if character.str_save_prof else 0) + str_save_equip }}
+                        {% if str_save_equip %}<span class="equip-bonus-inline" title="Includes +{{ str_save_equip }} from items">*</span>{% endif %}
+                    </span>
+                </div>
+                <div class="skill-item" data-ability="int" data-equip-bonus="{{ bonuses.get('int_save', 0) }}">
+                    <input type="checkbox" id="int_save_prof" name="int_save_prof" value="1" {% if character.int_save_prof %}checked{% endif %} form="character-form">
+                    <label for="int_save_prof">Intelligence</label>
+                    <span class="skill-bonus">
+                        {% set int_save_equip = bonuses.get('int_save', 0) %}
+                        {{ int_mod + (effective_prof if character.int_save_prof else 0) + int_save_equip }}
+                        {% if int_save_equip %}<span class="equip-bonus-inline" title="Includes +{{ int_save_equip }} from items">*</span>{% endif %}
+                    </span>
                 </div>
             </div>
-            {% endfor %}
+
+            <!-- Skills -->
+            <div class="section skills">
+                <h3>Skills</h3>
+
+                {% set skill_list = [
+                    ('athletics_prof', 'Athletics (Str)', str_mod, 'athletics'),
+                    ('arcana_prof', 'Arcana (Int)', int_mod, 'arcana'),
+                    ('history_prof', 'History (Int)', int_mod, 'history'),
+                    ('investigation_prof', 'Investigation (Int)', int_mod, 'investigation'),
+                    ('nature_prof', 'Nature (Int)', int_mod, 'nature'),
+                    ('religion_prof', 'Religion (Int)', int_mod, 'religion'),
+                ] %}
+
+                {% for field, label, base_mod, bonus_key in skill_list %}
+                {% set skill_equip = bonuses.get(bonus_key, 0) %}
+                <div class="skill-item" data-ability="{{ 'str' if 'Str' in label else 'int' }}" data-equip-bonus="{{ skill_equip }}">
+                    <input type="checkbox" id="{{ field }}" name="{{ field }}" value="1" {% if character[field] %}checked{% endif %} form="character-form">
+                    <label for="{{ field }}">{{ label }}</label>
+                    <span class="skill-bonus">
+                        {{ base_mod + (effective_prof if character[field] else 0) + skill_equip }}
+                        {% if skill_equip %}<span class="equip-bonus-inline" title="Includes +{{ skill_equip }} from items">*</span>{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
         </div>
-        {% else %}
-        <div class="empty-inventory">No features yet. Add your first feature!</div>
-        {% endif %}
+
+        <!-- Right Column -->
+        <div class="right-column">
+
+            <!-- Combat Stats -->
+            <div class="combat-stats">
+                {% set ac_bonus = bonuses.get('ac', 0) %}
+                <div class="stat-box">
+                    <label>Armor Class</label>
+                    {% if ac_bonus %}
+                    <div class="effective-stat">{{ character.ac + ac_bonus }}</div>
+                    <div class="base-stat-row">
+                        <span class="base-label">Base</span>
+                        <input type="number" name="ac" value="{{ character.ac }}" min="0" class="stat-input-small" form="character-form">
+                        <span class="bonus-tag">+{{ ac_bonus }}</span>
+                    </div>
+                    {% else %}
+                    <input type="number" name="ac" value="{{ character.ac }}" min="0" class="stat-input" form="character-form">
+                    {% endif %}
+                </div>
+
+                {% set hp_bonus = bonuses.get('hp_max', 0) %}
+                <div class="stat-box">
+                    <label>Hit Points</label>
+                    {% if hp_bonus %}
+                    <div class="hp-inputs">
+                        <input type="number" name="hp_current" value="{{ character.hp_current }}" min="0" class="stat-input" placeholder="Current" form="character-form">
+                        <span>/</span>
+                        <span class="effective-stat-inline">{{ character.hp_max + hp_bonus }}</span>
+                    </div>
+                    <div class="base-stat-row">
+                        <span class="base-label">Base max</span>
+                        <input type="number" name="hp_max" value="{{ character.hp_max }}" min="0" class="stat-input-small" form="character-form">
+                        <span class="bonus-tag">+{{ hp_bonus }}</span>
+                    </div>
+                    {% else %}
+                    <div class="hp-inputs">
+                        <input type="number" name="hp_current" value="{{ character.hp_current }}" min="0" class="stat-input" placeholder="Current" form="character-form">
+                        <span>/</span>
+                        <input type="number" name="hp_max" value="{{ character.hp_max }}" min="0" class="stat-input" placeholder="Max" form="character-form">
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% set mana_bonus = bonuses.get('mana_max', 0) %}
+                <div class="stat-box">
+                    <label>Mana</label>
+                    {% if mana_bonus %}
+                    <div class="hp-inputs">
+                        <input type="number" name="mana_current" value="{{ character.mana_current }}" min="0" class="stat-input" placeholder="Current" form="character-form">
+                        <span>/</span>
+                        <span class="effective-stat-inline">{{ character.mana_max + mana_bonus }}</span>
+                    </div>
+                    <div class="base-stat-row">
+                        <span class="base-label">Base max</span>
+                        <input type="number" name="mana_max" value="{{ character.mana_max }}" min="0" class="stat-input-small" form="character-form">
+                        <span class="bonus-tag">+{{ mana_bonus }}</span>
+                    </div>
+                    {% else %}
+                    <div class="hp-inputs">
+                        <input type="number" name="mana_current" value="{{ character.mana_current }}" min="0" class="stat-input" placeholder="Current" form="character-form">
+                        <span>/</span>
+                        <input type="number" name="mana_max" value="{{ character.mana_max }}" min="0" class="stat-input" placeholder="Max" form="character-form">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ==================== INVENTORY SECTION ==================== -->
+            <div class="section inventory-section">
+                <div class="section-header">
+                    <h3>Inventory</h3>
+                    <button type="button" class="btn btn-primary btn-small" onclick="openAddItemModal()">+ Add Item</button>
+                </div>
+
+                {% if inventory %}
+                <div class="inventory-list">
+                    {% for item in inventory %}
+                    <div class="inventory-item {{ 'equipped' if item.equipped else '' }}">
+                        <div class="item-summary" onclick="toggleItemExpand(this)">
+                            <div class="item-name-row">
+                                {% if item.equipped %}
+                                <span class="equip-dot" title="Equipped"></span>
+                                {% endif %}
+                                <span class="item-name">{{ item.name }}</span>
+                                {% if item.quantity is not none %}
+                                <span class="item-quantity">×{{ item.quantity }}</span>
+                                {% endif %}
+                            </div>
+                            <span class="item-expand-icon">▸</span>
+                        </div>
+                        <div class="item-details">
+                            {% if item.location %}
+                            <div class="item-location">📍 {{ item.location }}</div>
+                            {% endif %}
+                            {% if item.description %}
+                            <div class="item-description">{{ item.description }}</div>
+                            {% endif %}
+                            {% if item.properties %}
+                            <div class="item-properties">
+                                {% for prop in item.properties %}
+                                <span class="item-property-tag">
+                                    {{ dict(stat_options)[prop.stat_modified] }}
+                                    {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="item-actions">
+                                <form method="POST" action="{{ url_for('toggle_equip_item', character_id=character.id, item_id=item.id) }}" class="inline-form">
+                                    <button type="submit" class="btn btn-small {{ 'btn-secondary' if item.equipped else 'btn-equip' }}">
+                                        {{ 'Remove' if item.equipped else '⬆ Equip' }}
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="openEditItemModal({{ item.id }})">✎ Edit</button>
+                                <form method="POST" action="{{ url_for('delete_inventory_item', character_id=character.id, item_id=item.id) }}" class="inline-form">
+                                    <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Remove {{ item.name }} from inventory?')">
+                                        ✕ Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-inventory">No items yet. Add your first item!</div>
+                {% endif %}
+            </div>
+            <!-- ==================== END INVENTORY ==================== -->
+
+            <!-- ==================== FEATURES SECTION ==================== -->
+            <div class="section features-section">
+                <div class="section-header">
+                    <h3>Features & Traits</h3>
+                    <button type="button" class="btn btn-primary btn-small" onclick="openAddFeatureModal()">+ Add Feature</button>
+                </div>
+
+                {% if features %}
+                <div class="inventory-list">
+                    {% for feature in features %}
+                    <div class="inventory-item">
+                        <div class="item-summary" onclick="toggleItemExpand(this)">
+                            <div class="item-name-row">
+                                <span class="item-name">{{ feature.name }}</span>
+                                {% if feature.source %}
+                                <span class="item-quantity">{{ feature.source }}</span>
+                                {% endif %}
+                            </div>
+                            <span class="item-expand-icon">▸</span>
+                        </div>
+                        <div class="item-details">
+                            {% if feature.description %}
+                            <div class="item-description">{{ feature.description }}</div>
+                            {% endif %}
+                            {% if feature.properties %}
+                            <div class="item-properties">
+                                {% for prop in feature.properties %}
+                                <span class="item-property-tag">
+                                    {{ dict(stat_options)[prop.stat_modified] }}
+                                    {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="item-actions">
+                                <button type="button" class="btn btn-small btn-secondary" onclick="openEditFeatureModal({{ feature.id }})">✎ Edit</button>
+                                <form method="POST" action="{{ url_for('delete_feature', character_id=character.id, feature_id=feature.id) }}" class="inline-form">
+                                    <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Remove {{ feature.name }}?')">
+                                        ✕ Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-inventory">No features yet. Add your first feature!</div>
+                {% endif %}
+            </div>
+            <!-- ==================== END FEATURES ==================== -->
+
+        </div>
     </div>
-    <!-- ==================== END FEATURES ==================== -->
 
 </div>
 
 <!-- ==================== INVENTORY MODAL (standalone form) ==================== -->
-<div id="inventory-modal" class="modal-overlay" 
+<div id="inventory-modal" class="modal-overlay"
      data-stat-options='{{ stat_options | tojson }}'>
     <div class="modal-content">
         <div class="modal-header">
             <h3 id="modal-title">Add Item</h3>
             <button type="button" class="modal-close" onclick="closeItemModal()">✕</button>
         </div>
-        <form method="POST" 
+        <form method="POST"
               data-add-url="{{ url_for('add_inventory_item', character_id=character.id) }}"
               data-character-id="{{ character.id }}"
               action="{{ url_for('add_inventory_item', character_id=character.id) }}">
-            
+
             <div class="modal-body">
                 <div class="form-group">
                     <label for="item-name">Item Name</label>
@@ -452,13 +438,113 @@
 <script src="{{ url_for('static', filename='inventory.js') }}"></script>
 <script src="{{ url_for('static', filename='features.js') }}"></script>
 <script>
-// Double-click-to-edit for number inputs on the character sheet form
 (function() {
-    const form = document.querySelector('.character-sheet > form');
+    const form = document.getElementById('character-form');
     if (!form) return;
+    const fieldUrl = form.dataset.fieldUrl;
 
-    const numberInputs = Array.from(form.querySelectorAll('input[type="number"]'));
+    // All text/number inputs associated with the character form
+    const formInputs = Array.from(document.querySelectorAll(
+        'input[type="number"][form="character-form"], #character-form input[type="number"],' +
+        'input[type="text"][form="character-form"], #character-form input[type="text"]'
+    ));
 
+    // All checkboxes associated with the character form
+    const checkboxes = Array.from(document.querySelectorAll(
+        'input[type="checkbox"][form="character-form"], #character-form input[type="checkbox"]'
+    ));
+
+    // --- Key elements ---
+    const levelInput = document.querySelector('input[name="level"][form="character-form"], #character-form input[name="level"]');
+    const profInput = document.querySelector('input[name="proficiency_bonus"][form="character-form"], #character-form input[name="proficiency_bonus"]');
+    const profSection = profInput ? profInput.closest('.proficiency-section') : null;
+    const strInput = document.querySelector('input[name="str_score"][form="character-form"]');
+    const intInput = document.querySelector('input[name="int_score"][form="character-form"]');
+
+    // --- Auto-save ---
+    function saveField(field, value) {
+        fetch(fieldUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field, value })
+        });
+    }
+
+    // --- D&D 5e calculations ---
+    function calcProfBonus(level) {
+        const lvl = Math.max(1, Math.min(20, parseInt(level) || 1));
+        return Math.floor((lvl - 1) / 4) + 2;
+    }
+
+    function calcMod(score) {
+        return Math.floor((score - 10) / 2);
+    }
+
+    function getAbilityMod(ability) {
+        const input = ability === 'str' ? strInput : intInput;
+        const abilityBlock = input.closest('.ability-score');
+        const equipBonus = parseInt(abilityBlock.dataset.equipBonus) || 0;
+        const baseScore = parseInt(input.value) || 10;
+        return calcMod(baseScore + equipBonus);
+    }
+
+    function getEffectiveProf() {
+        const base = parseInt(profInput.value) || 0;
+        const equipBonus = profSection
+            ? parseInt((profSection.querySelector('.bonus-tag') || {}).textContent?.replace('+', '') || 0)
+            : 0;
+        return base + equipBonus;
+    }
+
+    // --- Update proficiency bonus from level ---
+    function updateProfFromLevel() {
+        if (!levelInput || !profInput) return;
+        profInput.value = calcProfBonus(levelInput.value);
+
+        if (profSection) {
+            const effectiveSpan = profSection.querySelector('.effective-inline');
+            if (effectiveSpan) effectiveSpan.textContent = getEffectiveProf();
+        }
+    }
+
+    // --- Update ability modifier + effective score displays ---
+    function recalcAbilities() {
+        document.querySelectorAll('.ability-score[data-ability]').forEach(block => {
+            const input = block.querySelector('input[type="number"]');
+            const equipBonus = parseInt(block.dataset.equipBonus) || 0;
+            const baseScore = parseInt(input.value) || 10;
+            const effectiveScore = baseScore + equipBonus;
+
+            const modEl = block.querySelector('.modifier');
+            if (modEl) modEl.textContent = calcMod(effectiveScore);
+
+            const effEl = block.querySelector('.effective-score');
+            if (effEl) effEl.textContent = effectiveScore;
+        });
+    }
+
+    // --- Update saving throw and skill bonus displays ---
+    function recalcSavesAndSkills() {
+        const effectiveProf = getEffectiveProf();
+
+        document.querySelectorAll('.saves .skill-item[data-ability], .skills .skill-item[data-ability]').forEach(item => {
+            const ability = item.dataset.ability;
+            const equipBonus = parseInt(item.dataset.equipBonus) || 0;
+            const cb = item.querySelector('input[type="checkbox"]');
+            const profBonus = cb && cb.checked ? effectiveProf : 0;
+            const mod = getAbilityMod(ability);
+            const total = mod + profBonus + equipBonus;
+
+            const bonusSpan = item.querySelector('.skill-bonus');
+            if (bonusSpan) {
+                const equipStar = bonusSpan.querySelector('.equip-bonus-inline');
+                bonusSpan.textContent = total + ' ';
+                if (equipStar) bonusSpan.appendChild(equipStar);
+            }
+        });
+    }
+
+    // --- Double-click-to-edit ---
     function makeEditable(input) {
         input.readOnly = false;
         input.classList.remove('field-readonly');
@@ -471,46 +557,39 @@
         input.classList.add('field-readonly');
     }
 
-    // Auto-calculate proficiency bonus from level (5e formula)
-    const levelInput = form.querySelector('input[name="level"]');
-    const profInput = form.querySelector('input[name="proficiency_bonus"]');
-    const profSection = profInput ? profInput.closest('.proficiency-section') : null;
-
-    function calcProfBonus(level) {
-        const lvl = Math.max(1, Math.min(20, parseInt(level) || 1));
-        return Math.floor((lvl - 1) / 4) + 2;
-    }
-
-    function updateProficiency() {
-        if (!levelInput || !profInput) return;
-        const newProf = calcProfBonus(levelInput.value);
-        profInput.value = newProf;
-
-        // Update effective display if equipment bonuses are shown
-        if (profSection) {
-            const effectiveSpan = profSection.querySelector('.effective-inline');
-            const bonusTag = profSection.querySelector('.bonus-tag');
-            if (effectiveSpan && bonusTag) {
-                const equipBonus = parseInt(bonusTag.textContent.replace('+', '')) || 0;
-                effectiveSpan.textContent = newProf + equipBonus;
-            }
+    // Live recalc while typing
+    function onInputChange(input) {
+        if (input.name === 'level') {
+            updateProfFromLevel();
+        } else if (input.name === 'str_score' || input.name === 'int_score') {
+            recalcAbilities();
+            recalcSavesAndSkills();
         }
     }
 
-    if (levelInput) {
-        levelInput.addEventListener('input', updateProficiency);
+    // Determine which fields to save after an ability/level change
+    function saveChangedFields(input) {
+        if (!input.name || input.value === input._valueBeforeEdit) return;
+        saveField(input.name, input.value);
+        if (input.name === 'level' && profInput) {
+            saveField('proficiency_bonus', profInput.value);
+        }
     }
 
-    // Initialize all number inputs as readonly
-    numberInputs.forEach(input => {
+    // Initialize text/number inputs as readonly with double-click-to-edit + auto-save on blur
+    formInputs.forEach(input => {
         makeReadonly(input);
 
         input.addEventListener('dblclick', () => {
+            input._valueBeforeEdit = input.value;
             makeEditable(input);
         });
 
+        input.addEventListener('input', () => onInputChange(input));
+
         input.addEventListener('blur', () => {
             makeReadonly(input);
+            saveChangedFields(input);
         });
 
         input.addEventListener('keydown', (e) => {
@@ -518,18 +597,31 @@
 
             if (e.key === 'Tab') {
                 e.preventDefault();
-                const idx = numberInputs.indexOf(input);
+                const idx = formInputs.indexOf(input);
                 const next = e.shiftKey
-                    ? (idx - 1 + numberInputs.length) % numberInputs.length
-                    : (idx + 1) % numberInputs.length;
+                    ? (idx - 1 + formInputs.length) % formInputs.length
+                    : (idx + 1) % formInputs.length;
                 makeReadonly(input);
-                makeEditable(numberInputs[next]);
+                saveChangedFields(input);
+                formInputs[next]._valueBeforeEdit = formInputs[next].value;
+                makeEditable(formInputs[next]);
             }
 
             if (e.key === 'Enter' || e.key === 'Escape') {
                 e.preventDefault();
                 makeReadonly(input);
+                if (e.key === 'Enter') saveChangedFields(input);
             }
+        });
+    });
+
+    // Checkboxes: save immediately on change + recalc saves/skills
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (cb.name) {
+                saveField(cb.name, cb.checked ? 1 : 0);
+            }
+            recalcSavesAndSkills();
         });
     });
 })();

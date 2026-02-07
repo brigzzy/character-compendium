@@ -830,10 +830,10 @@ main {
     font-style: italic;
 }
 
-/* Standalone sections (outside the main form) */
-.character-sheet > .inventory-section,
-.character-sheet > .features-section {
-    margin-top: 2rem;
+/* Inventory & Features sections in right column */
+.right-column > .inventory-section,
+.right-column > .features-section {
+    margin-top: 1rem;
 }
 
 
