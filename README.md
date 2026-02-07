@@ -17,19 +17,24 @@ A D&D 5e character sheet web application with custom modifications for mana-base
 
 1. Install Python 3.8 or higher
 
-2. Install dependencies:
+### 1.5 Creating the venv (First run only)
+
 ```bash
-pip install -r requirements.txt
+python3 -m venv venv
 ```
 
-3. Run the application:
+### 2. Starting the Application
+
 ```bash
+source venv/bin/activate
+pip install -r requirements.txt
 python app.py
 ```
 
-4. Open your browser to `http://localhost:5000`
 
-5. On first run, create an admin account. Then log in and start creating characters!
+3. Open your browser to `http://localhost:5000`
+
+4. On first run, create an admin account. Then log in and start creating characters!
 
 ## Usage
 
