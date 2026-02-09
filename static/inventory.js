@@ -26,6 +26,9 @@
         document.getElementById('properties-container').innerHTML = '';
         propertyIndex = 0;
 
+        // Show "add with effects off" option
+        document.getElementById('item-disabled-option').style.display = '';
+
         modal.classList.add('active');
         document.getElementById('item-name').focus();
     };
@@ -38,6 +41,9 @@
 
         title.textContent = 'Edit Item';
         form.action = '/character/' + characterId + '/inventory/' + itemId + '/update';
+
+        // Hide "add with effects off" option in edit mode
+        document.getElementById('item-disabled-option').style.display = 'none';
 
         // Fetch item data
         fetch('/character/' + characterId + '/inventory/' + itemId + '/json')

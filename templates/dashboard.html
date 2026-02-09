@@ -22,10 +22,13 @@
                     <div class="character-card-info">
                         {% if character.class %}<p>{{ character.class }}</p>{% endif %}
                         {% if character.race %}<p>{{ character.race }}</p>{% endif %}
+                        {% if character.background %}<p>{{ character.background }}</p>{% endif %}
                     </div>
                     <div class="character-card-actions">
-                        <a href="{{ url_for('view_character', character_id=character.id) }}" class="btn btn-secondary">View</a>
-                        <form method="POST" action="{{ url_for('delete_character', character_id=character.id) }}" style="display: inline;">
+                        <form action="{{ url_for('view_character', character_id=character.id) }}">
+                            <button type="submit" class="btn btn-secondary">View</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('delete_character', character_id=character.id) }}">
                             <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this character?')">Delete</button>
                         </form>
                     </div>

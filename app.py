@@ -54,6 +54,7 @@ def login():
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['is_admin'] = bool(user['is_admin'])
+            session['dark_mode'] = bool(user.get('dark_mode', 0))
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password')
@@ -87,6 +88,19 @@ def first_user():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html')
+
+@app.route('/profile/toggle-dark-mode', methods=['POST'])
+@login_required
+def toggle_dark_mode():
+    new_mode = not session.get('dark_mode', False)
+    models.update_user_dark_mode(session['user_id'], new_mode)
+    session['dark_mode'] = new_mode
+    return jsonify({'ok': True, 'dark_mode': new_mode})
 
 @app.route('/admin')
 @admin_required
@@ -164,11 +178,17 @@ def view_character(character_id):
     feature_bonuses = models.get_feature_bonuses(character_id)
     for stat, val in feature_bonuses.items():
         bonuses[stat] = bonuses.get(stat, 0) + val
+    spell_bonuses = models.get_spell_bonuses(character_id)
+    for stat, val in spell_bonuses.items():
+        bonuses[stat] = bonuses.get(stat, 0) + val
     stat_options = models.STAT_OPTIONS
     features = models.get_features(character_id)
+    spells = models.get_spells(character_id)
+    currencies = models.get_currencies(character_id)
 
     return render_template('sheet.html', character=character, inventory=inventory,
-                           bonuses=bonuses, stat_options=stat_options, features=features)
+                           bonuses=bonuses, stat_options=stat_options, features=features,
+                           spells=spells, currencies=currencies)
 
 @app.route('/character/<int:character_id>/update', methods=['POST'])
 @login_required
@@ -180,7 +200,9 @@ def update_character(character_id):
         'level', 'hp_current', 'hp_max', 'ac', 'proficiency_bonus',
         'str_score', 'str_save_prof', 'int_score', 'int_save_prof',
         'athletics_prof', 'arcana_prof', 'history_prof', 'investigation_prof',
-        'nature_prof', 'religion_prof', 'mana_current', 'mana_max'
+        'nature_prof', 'religion_prof', 'mana_current', 'mana_max',
+        'spellcasting', 'death_save_success', 'death_save_fail',
+        'initiative', 'speed', 'temp_hp'
     ]
 
     for field in numeric_fields:
@@ -205,7 +227,9 @@ def update_field(character_id):
         'level', 'hp_current', 'hp_max', 'ac', 'proficiency_bonus',
         'str_score', 'str_save_prof', 'int_score', 'int_save_prof',
         'athletics_prof', 'arcana_prof', 'history_prof', 'investigation_prof',
-        'nature_prof', 'religion_prof', 'mana_current', 'mana_max'
+        'nature_prof', 'religion_prof', 'mana_current', 'mana_max',
+        'spellcasting', 'death_save_success', 'death_save_fail',
+        'initiative', 'speed', 'temp_hp'
     ]
 
     field = data['field']
@@ -252,8 +276,9 @@ def add_inventory_item(character_id):
     
     # Parse properties from form
     properties = _parse_properties_from_form(request.form)
-    
-    models.add_inventory_item(character_id, name, description, location, quantity, properties)
+    props_enabled = 0 if request.form.get('props_disabled') else 1
+
+    models.add_inventory_item(character_id, name, description, location, quantity, properties, props_enabled)
     flash(f'{name} added to inventory')
     return redirect(url_for('view_character', character_id=character_id))
 
@@ -344,7 +369,8 @@ def add_feature(character_id):
     if source == 'Other':
         source = request.form.get('feature_source_custom', '').strip()
     properties = _parse_properties_from_form(request.form)
-    models.add_feature(character_id, name, description, source, properties)
+    props_enabled = 0 if request.form.get('props_disabled') else 1
+    models.add_feature(character_id, name, description, source, properties, props_enabled)
     flash(f'{name} added')
     return redirect(url_for('view_character', character_id=character_id))
 
@@ -394,6 +420,162 @@ def get_feature_json(character_id, feature_id):
         return jsonify({'error': 'Feature not found'}), 404
 
     return jsonify(feature)
+
+
+# --- Spell Routes ---
+
+@app.route('/character/<int:character_id>/spell/add', methods=['POST'])
+@login_required
+def add_spell(character_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+
+    name = request.form.get('spell_name', '').strip()
+    if not name:
+        flash('Spell name is required')
+        return redirect(url_for('view_character', character_id=character_id))
+
+    try:
+        level = max(0, min(9, int(request.form.get('spell_level', '0'))))
+    except ValueError:
+        level = 0
+
+    description = request.form.get('spell_description', '').strip()
+    properties = _parse_properties_from_form(request.form)
+    props_enabled = 0 if request.form.get('props_disabled') else 1
+    models.add_spell(character_id, name, level, description, properties, props_enabled)
+    flash(f'{name} added to spells')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/spell/<int:spell_id>/update', methods=['POST'])
+@login_required
+def update_spell(character_id, spell_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+
+    name = request.form.get('spell_name', '').strip()
+    if not name:
+        flash('Spell name is required')
+        return redirect(url_for('view_character', character_id=character_id))
+
+    try:
+        level = max(0, min(9, int(request.form.get('spell_level', '0'))))
+    except ValueError:
+        level = 0
+
+    description = request.form.get('spell_description', '').strip()
+    properties = _parse_properties_from_form(request.form)
+    models.update_spell(spell_id, character_id, name, level, description, properties)
+    flash(f'{name} updated')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/spell/<int:spell_id>/delete', methods=['POST'])
+@login_required
+def delete_spell(character_id, spell_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+
+    models.delete_spell(spell_id, character_id)
+    flash('Spell removed')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/spell/<int:spell_id>/json')
+@login_required
+def get_spell_json(character_id, spell_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        return jsonify({'error': 'Not found'}), 404
+
+    spell = models.get_spell(spell_id, character_id)
+    if not spell:
+        return jsonify({'error': 'Spell not found'}), 404
+
+    return jsonify(spell)
+
+
+# --- Currency Routes ---
+
+@app.route('/character/<int:character_id>/currency/add', methods=['POST'])
+@login_required
+def add_currency(character_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+
+    name = request.form.get('currency_name', '').strip()
+    abbreviation = request.form.get('currency_abbreviation', '').strip()
+    if not name:
+        flash('Currency name is required')
+        return redirect(url_for('view_character', character_id=character_id))
+
+    models.add_currency(character_id, name, abbreviation)
+    flash(f'{name} added')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/currency/<int:currency_id>/delete', methods=['POST'])
+@login_required
+def delete_currency(character_id, currency_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        flash('Character not found')
+        return redirect(url_for('dashboard'))
+
+    models.delete_currency(currency_id, character_id)
+    flash('Currency removed')
+    return redirect(url_for('view_character', character_id=character_id))
+
+@app.route('/character/<int:character_id>/currency/<int:currency_id>/adjust', methods=['POST'])
+@login_required
+def adjust_currency(character_id, currency_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        return jsonify({'ok': False, 'error': 'Not found'}), 404
+
+    data = request.get_json()
+    if not data or 'delta' not in data:
+        return jsonify({'ok': False, 'error': 'Missing delta'}), 400
+
+    try:
+        delta = int(data['delta'])
+    except (ValueError, TypeError):
+        return jsonify({'ok': False, 'error': 'Invalid delta'}), 400
+
+    new_amount = models.adjust_currency(currency_id, character_id, delta)
+    if new_amount is None:
+        return jsonify({'ok': False, 'error': 'Currency not found'}), 404
+
+    return jsonify({'ok': True, 'amount': new_amount})
+
+
+@app.route('/character/<int:character_id>/property/toggle', methods=['POST'])
+@login_required
+def toggle_property(character_id):
+    character = _verify_character_ownership(character_id)
+    if not character:
+        return jsonify({'ok': False, 'error': 'Not found'}), 404
+
+    data = request.get_json()
+    if not data or 'table' not in data or 'prop_id' not in data:
+        return jsonify({'ok': False, 'error': 'Missing table or prop_id'}), 400
+
+    table = data['table']
+    allowed_tables = ['item_properties', 'feature_properties', 'spell_properties']
+    if table not in allowed_tables:
+        return jsonify({'ok': False, 'error': 'Invalid table'}), 400
+
+    prop_id = int(data['prop_id'])
+    new_state = models.toggle_property(table, prop_id, character_id)
+    if new_state is None:
+        return jsonify({'ok': False, 'error': 'Property not found'}), 404
+
+    return jsonify({'ok': True, 'enabled': new_state})
 
 
 def _parse_properties_from_form(form):

@@ -87,6 +87,9 @@
         document.getElementById('feature-properties-container').innerHTML = '';
         featurePropertyIndex = 0;
 
+        // Show "add with effects off" option
+        document.getElementById('feature-disabled-option').style.display = '';
+
         modal.classList.add('active');
         document.getElementById('feature-name').focus();
     };
@@ -99,6 +102,9 @@
 
         title.textContent = 'Edit Feature';
         form.action = '/character/' + characterId + '/feature/' + featureId + '/update';
+
+        // Hide "add with effects off" option in edit mode
+        document.getElementById('feature-disabled-option').style.display = 'none';
 
         fetch('/character/' + characterId + '/feature/' + featureId + '/json')
             .then(function(r) { return r.json(); })

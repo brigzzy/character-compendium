@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Character Compendium{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <h2>Profile</h2>
+    <div class="profile-card">
+        <div class="profile-info">
+            <span class="profile-username">{{ session.username }}</span>
+            {% if session.is_admin %}
+            <span class="badge badge-admin">Admin</span>
+            {% endif %}
+        </div>
+        <div class="profile-settings">
+            <h3>Settings</h3>
+            <div class="setting-row">
+                <label for="dark-mode-toggle">Dark Mode</label>
+                <button type="button" id="dark-mode-toggle" class="toggle-switch {{ 'active' if session.dark_mode else '' }}"
+                        onclick="toggleDarkMode()">
+                    <span class="toggle-knob"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDarkMode() {
+    fetch('{{ url_for("toggle_dark_mode") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            document.documentElement.classList.toggle('dark', data.dark_mode);
+            var btn = document.getElementById('dark-mode-toggle');
+            btn.classList.toggle('active', data.dark_mode);
+        }
+    });
+}
+</script>
+{% endblock %}

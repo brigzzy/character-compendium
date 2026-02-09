@@ -2,6 +2,13 @@
 
 {% block title %}{{ character.name }} - Character Compendium{% endblock %}
 
+{% block nav_extra %}
+<div class="sheet-search">
+    <input type="text" id="sheet-search-input" placeholder="Search sheet..." autocomplete="off">
+    <button type="button" id="sheet-search-clear" class="search-clear" style="display:none" onclick="clearSheetSearch()">✕</button>
+</div>
+{% endblock %}
+
 {% block content %}
 
 {# Pre-compute effective values used across sections #}
@@ -22,9 +29,16 @@
 
         <!-- Header Section -->
         <div class="sheet-header">
-            <div class="form-group">
-                <label for="name">Character Name</label>
-                <input type="text" id="name" name="name" value="{{ character.name }}" class="input-large">
+            <div class="header-name-row">
+                <div class="form-group" style="flex: 3;">
+                    <label for="name">Character Name</label>
+                    <input type="text" id="name" name="name" value="{{ character.name }}" class="input-large">
+                </div>
+                <div class="toggle-group header-toggle">
+                    <input type="checkbox" id="spellcasting" name="spellcasting" value="1"
+                           {% if character.spellcasting %}checked{% endif %}>
+                    <label for="spellcasting">Spellcaster</label>
+                </div>
             </div>
             <div class="header-row">
                 <div class="form-group">
@@ -38,6 +52,28 @@
                 <div class="form-group">
                     <label for="race">Race</label>
                     <input type="text" id="race" name="race" value="{{ character.race or '' }}">
+                </div>
+            </div>
+            <div class="header-row">
+                <div class="form-group">
+                    <label for="background">Background</label>
+                    <input type="text" id="background" name="background" value="{{ character.background or '' }}">
+                </div>
+                <div></div>
+                <div class="form-group">
+                    <label for="alignment">Alignment</label>
+                    <select id="alignment" name="alignment">
+                        <option value="" {% if not character.alignment %}selected{% endif %}>— None —</option>
+                        <option value="Lawful Good" {% if character.alignment == 'Lawful Good' %}selected{% endif %}>Lawful Good</option>
+                        <option value="Neutral Good" {% if character.alignment == 'Neutral Good' %}selected{% endif %}>Neutral Good</option>
+                        <option value="Chaotic Good" {% if character.alignment == 'Chaotic Good' %}selected{% endif %}>Chaotic Good</option>
+                        <option value="Lawful Neutral" {% if character.alignment == 'Lawful Neutral' %}selected{% endif %}>Lawful Neutral</option>
+                        <option value="True Neutral" {% if character.alignment == 'True Neutral' %}selected{% endif %}>True Neutral</option>
+                        <option value="Chaotic Neutral" {% if character.alignment == 'Chaotic Neutral' %}selected{% endif %}>Chaotic Neutral</option>
+                        <option value="Lawful Evil" {% if character.alignment == 'Lawful Evil' %}selected{% endif %}>Lawful Evil</option>
+                        <option value="Neutral Evil" {% if character.alignment == 'Neutral Evil' %}selected{% endif %}>Neutral Evil</option>
+                        <option value="Chaotic Evil" {% if character.alignment == 'Chaotic Evil' %}selected{% endif %}>Chaotic Evil</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -58,7 +94,7 @@
                     <div class="effective-score">{{ effective_str }}</div>
                     <div class="base-score-row">
                         <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input-small" form="character-form">
-                        <span class="bonus-tag">+{{ str_bonus }}</span>
+                        <span class="bonus-tag">{{ '+' if str_bonus > 0 else '' }}{{ str_bonus }}</span>
                     </div>
                     {% else %}
                     <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input" form="character-form">
@@ -72,7 +108,7 @@
                     <div class="effective-score">{{ effective_int }}</div>
                     <div class="base-score-row">
                         <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input-small" form="character-form">
-                        <span class="bonus-tag">+{{ int_bonus }}</span>
+                        <span class="bonus-tag">{{ '+' if int_bonus > 0 else '' }}{{ int_bonus }}</span>
                     </div>
                     {% else %}
                     <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input" form="character-form">
@@ -88,7 +124,7 @@
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span class="effective-inline">{{ effective_prof }}</span>
                     <input type="number" name="proficiency_bonus" value="{{ character.proficiency_bonus }}" min="0" class="bonus-input-small" form="character-form">
-                    <span class="bonus-tag">+{{ prof_bonus }}</span>
+                    <span class="bonus-tag">{{ '+' if prof_bonus > 0 else '' }}{{ prof_bonus }}</span>
                 </div>
                 {% else %}
                 <input type="number" name="proficiency_bonus" value="{{ character.proficiency_bonus }}" min="0" class="bonus-input" form="character-form">
@@ -159,7 +195,7 @@
                     <div class="base-stat-row">
                         <span class="base-label">Base</span>
                         <input type="number" name="ac" value="{{ character.ac }}" min="0" class="stat-input-small" form="character-form">
-                        <span class="bonus-tag">+{{ ac_bonus }}</span>
+                        <span class="bonus-tag">{{ '+' if ac_bonus > 0 else '' }}{{ ac_bonus }}</span>
                     </div>
                     {% else %}
                     <input type="number" name="ac" value="{{ character.ac }}" min="0" class="stat-input" form="character-form">
@@ -178,7 +214,7 @@
                     <div class="base-stat-row">
                         <span class="base-label">Base max</span>
                         <input type="number" name="hp_max" value="{{ character.hp_max }}" min="0" class="stat-input-small" form="character-form">
-                        <span class="bonus-tag">+{{ hp_bonus }}</span>
+                        <span class="bonus-tag">{{ '+' if hp_bonus > 0 else '' }}{{ hp_bonus }}</span>
                     </div>
                     {% else %}
                     <div class="hp-inputs">
@@ -190,7 +226,7 @@
                 </div>
 
                 {% set mana_bonus = bonuses.get('mana_max', 0) %}
-                <div class="stat-box">
+                <div class="stat-box mana-stat-box" style="{{ '' if character.spellcasting else 'display:none' }}">
                     <label>Mana</label>
                     {% if mana_bonus %}
                     <div class="hp-inputs">
@@ -201,7 +237,7 @@
                     <div class="base-stat-row">
                         <span class="base-label">Base max</span>
                         <input type="number" name="mana_max" value="{{ character.mana_max }}" min="0" class="stat-input-small" form="character-form">
-                        <span class="bonus-tag">+{{ mana_bonus }}</span>
+                        <span class="bonus-tag">{{ '+' if mana_bonus > 0 else '' }}{{ mana_bonus }}</span>
                     </div>
                     {% else %}
                     <div class="hp-inputs">
@@ -211,13 +247,121 @@
                     </div>
                     {% endif %}
                 </div>
+
+                {% set init_bonus = bonuses.get('initiative', 0) %}
+                <div class="stat-box">
+                    <label>Initiative</label>
+                    {% if init_bonus %}
+                    <div class="effective-stat">{{ character.initiative + init_bonus }}</div>
+                    <div class="base-stat-row">
+                        <span class="base-label">Base</span>
+                        <input type="number" name="initiative" value="{{ character.initiative }}" class="stat-input-small" form="character-form">
+                        <span class="bonus-tag">{{ '+' if init_bonus > 0 else '' }}{{ init_bonus }}</span>
+                    </div>
+                    {% else %}
+                    <input type="number" name="initiative" value="{{ character.initiative }}" class="stat-input" form="character-form">
+                    {% endif %}
+                </div>
+
+                {% set speed_bonus = bonuses.get('speed', 0) %}
+                <div class="stat-box">
+                    <label>Speed</label>
+                    {% if speed_bonus %}
+                    <div class="effective-stat">{{ character.speed + speed_bonus }}</div>
+                    <div class="base-stat-row">
+                        <span class="base-label">Base</span>
+                        <input type="number" name="speed" value="{{ character.speed }}" min="0" class="stat-input-small" form="character-form">
+                        <span class="bonus-tag">{{ '+' if speed_bonus > 0 else '' }}{{ speed_bonus }}</span>
+                    </div>
+                    {% else %}
+                    <input type="number" name="speed" value="{{ character.speed }}" min="0" class="stat-input" form="character-form">
+                    {% endif %}
+                </div>
+
+                <div class="stat-box stat-box-temp-hp">
+                    <label>Temp HP</label>
+                    <input type="number" name="temp_hp" value="{{ character.temp_hp }}" min="0" class="stat-input temp-hp-input" form="character-form">
+                </div>
+            </div>
+
+            <!-- Death Saves -->
+            <div class="section death-saves-section">
+                <h3>Death Saves</h3>
+                <div class="death-saves" id="death-saves"
+                     data-success="{{ character.death_save_success or 0 }}"
+                     data-fail="{{ character.death_save_fail or 0 }}">
+                    <div class="death-save-group">
+                        <label>Successes</label>
+                        <div class="death-save-pips">
+                            <button type="button" class="death-save-pip" data-type="success" data-index="1"></button>
+                            <button type="button" class="death-save-pip" data-type="success" data-index="2"></button>
+                            <button type="button" class="death-save-pip" data-type="success" data-index="3"></button>
+                        </div>
+                    </div>
+                    <div class="death-save-group">
+                        <label>Failures</label>
+                        <div class="death-save-pips">
+                            <button type="button" class="death-save-pip" data-type="fail" data-index="1"></button>
+                            <button type="button" class="death-save-pip" data-type="fail" data-index="2"></button>
+                            <button type="button" class="death-save-pip" data-type="fail" data-index="3"></button>
+                        </div>
+                    </div>
+                    <button type="button" class="death-save-reset" onclick="resetDeathSaves()" title="Reset death saves">Reset</button>
+                </div>
             </div>
 
             <!-- ==================== INVENTORY SECTION ==================== -->
             <div class="section inventory-section">
                 <div class="section-header">
                     <h3>Inventory</h3>
-                    <button type="button" class="btn btn-primary btn-small" onclick="openAddItemModal()">+ Add Item</button>
+                    <div class="section-header-actions">
+                        <button type="button" class="btn btn-secondary btn-small" onclick="toggleCurrencyPanel()">Currency</button>
+                        <button type="button" class="btn btn-primary btn-small" onclick="openAddItemModal()">+ Add Item</button>
+                    </div>
+                </div>
+
+                <!-- Currency Panel (collapsed by default) -->
+                <div class="currency-panel" id="currency-panel" style="display:none">
+                    <div class="currency-panel-header">
+                        <div class="currency-grid">
+                            {% for currency in currencies %}
+                            <div class="currency-chip" data-currency-id="{{ currency.id }}">
+                                <div class="currency-display" onclick="toggleCurrencyAdjuster(this.parentElement)">
+                                    <span class="currency-amount" id="currency-amount-{{ currency.id }}">{{ currency.amount }}</span>
+                                    <span class="currency-abbr">{{ currency.abbreviation or currency.name }}</span>
+                                </div>
+                                <div class="currency-adjuster" style="display:none">
+                                    <div class="adjuster-controls">
+                                        <button type="button" class="btn-adjust btn-minus" onclick="adjustCurrency({{ currency.id }}, -1)">−</button>
+                                        <input type="number" class="adjuster-input" id="adjuster-input-{{ currency.id }}" value="1" min="1">
+                                        <button type="button" class="btn-adjust btn-plus" onclick="adjustCurrency({{ currency.id }}, 1)">+</button>
+                                    </div>
+                                    <div class="adjuster-actions">
+                                        <form method="POST" action="{{ url_for('delete_currency', character_id=character.id, currency_id=currency.id) }}" class="inline-form">
+                                            <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Remove {{ currency.name }}?')">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="openAddCurrencyForm()">+ Add Currency</button>
+                    </div>
+
+                    <div class="currency-add-form" id="currency-add-form" style="display:none">
+                        <form method="POST" action="{{ url_for('add_currency', character_id=character.id) }}">
+                            <div class="currency-add-fields">
+                                <input type="text" name="currency_name" placeholder="Name" required>
+                                <input type="text" name="currency_abbreviation" placeholder="Abbr" maxlength="5">
+                                <button type="submit" class="btn btn-primary btn-small">Add</button>
+                                <button type="button" class="btn btn-secondary btn-small" onclick="closeAddCurrencyForm()">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {% if not currencies %}
+                    <div class="empty-inventory">No currencies set up.</div>
+                    {% endif %}
                 </div>
 
                 {% if inventory %}
@@ -234,6 +378,18 @@
                                 <span class="item-quantity">×{{ item.quantity }}</span>
                                 {% endif %}
                             </div>
+                            {% if item.properties %}
+                            <div class="item-properties">
+                                {% for prop in item.properties %}
+                                <span class="item-property-tag {{ '' if prop.enabled else 'disabled' }}"
+                                      data-prop-id="{{ prop.id }}" data-table="item_properties"
+                                      onclick="event.stopPropagation(); toggleProperty(this)" title="Click to toggle">
+                                    {{ dict(stat_options)[prop.stat_modified] }}
+                                    {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                             <span class="item-expand-icon">▸</span>
                         </div>
                         <div class="item-details">
@@ -241,17 +397,7 @@
                             <div class="item-location">📍 {{ item.location }}</div>
                             {% endif %}
                             {% if item.description %}
-                            <div class="item-description">{{ item.description }}</div>
-                            {% endif %}
-                            {% if item.properties %}
-                            <div class="item-properties">
-                                {% for prop in item.properties %}
-                                <span class="item-property-tag">
-                                    {{ dict(stat_options)[prop.stat_modified] }}
-                                    {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
-                                </span>
-                                {% endfor %}
-                            </div>
+                            <div class="item-description markdown-content">{{ item.description }}</div>
                             {% endif %}
                             <div class="item-actions">
                                 <form method="POST" action="{{ url_for('toggle_equip_item', character_id=character.id, item_id=item.id) }}" class="inline-form">
@@ -294,21 +440,23 @@
                                 <span class="item-quantity">{{ feature.source }}</span>
                                 {% endif %}
                             </div>
-                            <span class="item-expand-icon">▸</span>
-                        </div>
-                        <div class="item-details">
-                            {% if feature.description %}
-                            <div class="item-description">{{ feature.description }}</div>
-                            {% endif %}
                             {% if feature.properties %}
                             <div class="item-properties">
                                 {% for prop in feature.properties %}
-                                <span class="item-property-tag">
+                                <span class="item-property-tag {{ '' if prop.enabled else 'disabled' }}"
+                                      data-prop-id="{{ prop.id }}" data-table="feature_properties"
+                                      onclick="event.stopPropagation(); toggleProperty(this)" title="Click to toggle">
                                     {{ dict(stat_options)[prop.stat_modified] }}
                                     {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
                                 </span>
                                 {% endfor %}
                             </div>
+                            {% endif %}
+                            <span class="item-expand-icon">▸</span>
+                        </div>
+                        <div class="item-details">
+                            {% if feature.description %}
+                            <div class="item-description markdown-content">{{ feature.description }}</div>
                             {% endif %}
                             <div class="item-actions">
                                 <button type="button" class="btn btn-small btn-secondary" onclick="openEditFeatureModal({{ feature.id }})">✎ Edit</button>
@@ -327,6 +475,63 @@
                 {% endif %}
             </div>
             <!-- ==================== END FEATURES ==================== -->
+
+            <!-- ==================== SPELLS SECTION ==================== -->
+            <div class="section spells-section" style="{{ '' if character.spellcasting else 'display:none' }}">
+                <div class="section-header">
+                    <h3>Spells</h3>
+                    <button type="button" class="btn btn-primary btn-small" onclick="openAddSpellModal()">+ Add Spell</button>
+                </div>
+
+                {% if spells %}
+                <div class="inventory-list">
+                    {% for level, level_spells in spells|groupby('level') %}
+                    <div class="spell-level-group">
+                        <h4 class="spell-level-header">{{ 'Cantrips' if level == 0 else 'Level ' ~ level }}</h4>
+                        {% for spell in level_spells %}
+                        <div class="inventory-item">
+                            <div class="item-summary" onclick="toggleItemExpand(this)">
+                                <div class="item-name-row">
+                                    <span class="item-name">{{ spell.name }}</span>
+                                    <span class="item-quantity">{% if spell.level == 0 %}Cantrip{% else %}Lvl {{ spell.level }}{% endif %}</span>
+                                </div>
+                                {% if spell.properties %}
+                                <div class="item-properties">
+                                    {% for prop in spell.properties %}
+                                    <span class="item-property-tag {{ '' if prop.enabled else 'disabled' }}"
+                                          data-prop-id="{{ prop.id }}" data-table="spell_properties"
+                                          onclick="event.stopPropagation(); toggleProperty(this)" title="Click to toggle">
+                                        {{ dict(stat_options)[prop.stat_modified] }}
+                                        {{ '+' if prop.value >= 0 else '' }}{{ prop.value }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <span class="item-expand-icon">▸</span>
+                            </div>
+                            <div class="item-details">
+                                {% if spell.description %}
+                                <div class="item-description markdown-content">{{ spell.description }}</div>
+                                {% endif %}
+                                <div class="item-actions">
+                                    <button type="button" class="btn btn-small btn-secondary" onclick="openEditSpellModal({{ spell.id }})">✎ Edit</button>
+                                    <form method="POST" action="{{ url_for('delete_spell', character_id=character.id, spell_id=spell.id) }}" class="inline-form">
+                                        <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Remove {{ spell.name }}?')">
+                                            ✕ Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-inventory">No spells yet. Add your first spell!</div>
+                {% endif %}
+            </div>
+            <!-- ==================== END SPELLS ==================== -->
 
         </div>
     </div>
@@ -355,6 +560,7 @@
                 <div class="form-group">
                     <label for="item-description">Description</label>
                     <textarea id="item-description" name="item_description" rows="3"></textarea>
+                    <span class="form-hint">Markdown supported</span>
                 </div>
 
                 <div class="form-row-modal">
@@ -372,6 +578,11 @@
                     <label>Properties</label>
                     <div id="properties-container"></div>
                     <button type="button" class="btn btn-secondary btn-small" onclick="addPropertyRow()">+ Add Property</button>
+                </div>
+
+                <div class="form-group toggle-group add-only-option" id="item-disabled-option" style="display:none">
+                    <input type="checkbox" id="item-props-disabled" name="props_disabled" value="1">
+                    <label for="item-props-disabled">Add with effects off</label>
                 </div>
             </div>
 
@@ -418,12 +629,18 @@
                 <div class="form-group">
                     <label for="feature-description">Description</label>
                     <textarea id="feature-description" name="feature_description" rows="4"></textarea>
+                    <span class="form-hint">Markdown supported</span>
                 </div>
 
                 <div class="form-group">
                     <label>Properties</label>
                     <div id="feature-properties-container"></div>
                     <button type="button" class="btn btn-secondary btn-small" onclick="addFeaturePropertyRow()">+ Add Property</button>
+                </div>
+
+                <div class="form-group toggle-group add-only-option" id="feature-disabled-option" style="display:none">
+                    <input type="checkbox" id="feature-props-disabled" name="props_disabled" value="1">
+                    <label for="feature-props-disabled">Add with effects off</label>
                 </div>
             </div>
 
@@ -435,8 +652,89 @@
     </div>
 </div>
 
+<!-- ==================== SPELL MODAL ==================== -->
+<div id="spell-modal" class="modal-overlay"
+     data-stat-options='{{ stat_options | tojson }}'>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="spell-modal-title">Add Spell</h3>
+            <button type="button" class="modal-close" onclick="closeSpellModal()">✕</button>
+        </div>
+        <form method="POST"
+              data-add-url="{{ url_for('add_spell', character_id=character.id) }}"
+              data-character-id="{{ character.id }}"
+              action="{{ url_for('add_spell', character_id=character.id) }}">
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="spell-name">Spell Name</label>
+                    <input type="text" id="spell-name" name="spell_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="spell-level">Spell Level</label>
+                    <select id="spell-level" name="spell_level">
+                        <option value="0">Cantrip</option>
+                        <option value="1">1st Level</option>
+                        <option value="2">2nd Level</option>
+                        <option value="3">3rd Level</option>
+                        <option value="4">4th Level</option>
+                        <option value="5">5th Level</option>
+                        <option value="6">6th Level</option>
+                        <option value="7">7th Level</option>
+                        <option value="8">8th Level</option>
+                        <option value="9">9th Level</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="spell-description">Description</label>
+                    <textarea id="spell-description" name="spell_description" rows="4"></textarea>
+                    <span class="form-hint">Markdown supported</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Properties</label>
+                    <div id="spell-properties-container"></div>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addSpellPropertyRow()">+ Add Property</button>
+                </div>
+
+                <input type="hidden" name="props_disabled" value="1">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeSpellModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Spell</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='inventory.js') }}"></script>
 <script src="{{ url_for('static', filename='features.js') }}"></script>
+<script src="{{ url_for('static', filename='spells.js') }}"></script>
+<script>
+// Toggle property enabled/disabled
+function toggleProperty(el) {
+    var propId = el.dataset.propId;
+    var table = el.dataset.table;
+    var characterId = document.getElementById('character-form').dataset.fieldUrl.split('/character/')[1].split('/')[0];
+
+    fetch('/character/' + characterId + '/property/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({table: table, prop_id: propId})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            el.classList.toggle('disabled', !data.enabled);
+            // Reload to reflect bonus changes
+            location.reload();
+        }
+    });
+}
+</script>
 <script>
 (function() {
     const form = document.getElementById('character-form');
@@ -615,14 +913,293 @@
         });
     });
 
+    // Selects: save immediately on change
+    const selects = Array.from(document.querySelectorAll(
+        'select[form="character-form"], #character-form select'
+    ));
+    selects.forEach(sel => {
+        sel.addEventListener('change', () => {
+            if (sel.name) saveField(sel.name, sel.value);
+        });
+    });
+
     // Checkboxes: save immediately on change + recalc saves/skills
     checkboxes.forEach(cb => {
         cb.addEventListener('change', () => {
             if (cb.name) {
                 saveField(cb.name, cb.checked ? 1 : 0);
             }
-            recalcSavesAndSkills();
+            if (cb.name === 'spellcasting') {
+                var manaBox = document.querySelector('.mana-stat-box');
+                var spellsSection = document.querySelector('.spells-section');
+                var combatStats = document.querySelector('.combat-stats');
+                if (manaBox) manaBox.style.display = cb.checked ? '' : 'none';
+                if (spellsSection) spellsSection.style.display = cb.checked ? '' : 'none';
+                if (combatStats) combatStats.classList.toggle('two-col', !cb.checked);
+            } else {
+                recalcSavesAndSkills();
+            }
         });
+    });
+})();
+</script>
+<script>
+// Render markdown in description fields
+(function() {
+    if (typeof marked === 'undefined') return;
+    marked.setOptions({ breaks: true, gfm: true });
+    document.querySelectorAll('.markdown-content').forEach(function(el) {
+        var raw = el.textContent;
+        var html = marked.parse(raw);
+        el.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(html) : html;
+    });
+})();
+</script>
+<script>
+// Death Saves
+(function() {
+    var container = document.getElementById('death-saves');
+    if (!container) return;
+    var fieldUrl = document.getElementById('character-form').dataset.fieldUrl;
+
+    var successCount = parseInt(container.dataset.success) || 0;
+    var failCount = parseInt(container.dataset.fail) || 0;
+
+    function renderPips() {
+        container.querySelectorAll('.death-save-pip[data-type="success"]').forEach(function(pip) {
+            var idx = parseInt(pip.dataset.index);
+            pip.classList.toggle('success-filled', idx <= successCount);
+        });
+        container.querySelectorAll('.death-save-pip[data-type="fail"]').forEach(function(pip) {
+            var idx = parseInt(pip.dataset.index);
+            pip.classList.toggle('fail-filled', idx <= failCount);
+        });
+
+        container.classList.remove('stabilized', 'dead');
+        if (successCount >= 3) container.classList.add('stabilized');
+        if (failCount >= 3) container.classList.add('dead');
+    }
+
+    function save() {
+        fetch(fieldUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({field: 'death_save_success', value: successCount})
+        });
+        fetch(fieldUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({field: 'death_save_fail', value: failCount})
+        });
+    }
+
+    container.addEventListener('click', function(e) {
+        var pip = e.target.closest('.death-save-pip');
+        if (!pip) return;
+
+        var type = pip.dataset.type;
+        var idx = parseInt(pip.dataset.index);
+
+        if (type === 'success') {
+            successCount = (idx <= successCount) ? idx - 1 : idx;
+        } else {
+            failCount = (idx <= failCount) ? idx - 1 : idx;
+        }
+
+        renderPips();
+        save();
+    });
+
+    window.resetDeathSaves = function() {
+        successCount = 0;
+        failCount = 0;
+        renderPips();
+        save();
+    };
+
+    renderPips();
+})();
+</script>
+<script>
+// Currency
+(function() {
+    var characterId = document.getElementById('character-form').dataset.fieldUrl.split('/character/')[1].split('/')[0];
+
+    window.toggleCurrencyAdjuster = function(chip) {
+        var adjuster = chip.querySelector('.currency-adjuster');
+        var isOpen = adjuster.style.display !== 'none';
+
+        // Close all other adjusters first
+        document.querySelectorAll('.currency-adjuster').forEach(function(a) {
+            a.style.display = 'none';
+        });
+
+        if (!isOpen) {
+            adjuster.style.display = '';
+            var input = adjuster.querySelector('.adjuster-input');
+            if (input) input.focus();
+        }
+    };
+
+    window.adjustCurrency = function(currencyId, direction) {
+        var input = document.getElementById('adjuster-input-' + currencyId);
+        var delta = (parseInt(input.value) || 1) * direction;
+
+        fetch('/character/' + characterId + '/currency/' + currencyId + '/adjust', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({delta: delta})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.ok) {
+                document.getElementById('currency-amount-' + currencyId).textContent = data.amount;
+            }
+        });
+    };
+
+    window.toggleCurrencyPanel = function() {
+        var panel = document.getElementById('currency-panel');
+        panel.style.display = panel.style.display === 'none' ? '' : 'none';
+    };
+
+    window.openAddCurrencyForm = function() {
+        document.getElementById('currency-add-form').style.display = '';
+    };
+
+    window.closeAddCurrencyForm = function() {
+        document.getElementById('currency-add-form').style.display = 'none';
+    };
+
+    // Close adjusters when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.currency-chip') && !e.target.closest('.currency-add-form')) {
+            document.querySelectorAll('.currency-adjuster').forEach(function(a) {
+                a.style.display = 'none';
+            });
+        }
+    });
+})();
+</script>
+<script>
+// Sheet Search
+(function() {
+    var input = document.getElementById('sheet-search-input');
+    var clearBtn = document.getElementById('sheet-search-clear');
+    if (!input) return;
+
+    // Items: individual entries within sections
+    var itemSelector = '.inventory-item, .currency-chip';
+    // Sections: top-level sheet sections (ability scores, saves, skills, combat stats, death saves, etc.)
+    var sectionSelector = '.section, .combat-stats';
+
+    function getAllSearchables() {
+        return {
+            items: Array.from(document.querySelectorAll(itemSelector)),
+            sections: Array.from(document.querySelectorAll(sectionSelector))
+        };
+    }
+
+    function clearAllStates(searchables) {
+        searchables.items.forEach(function(el) {
+            el.classList.remove('search-match', 'search-dimmed');
+        });
+        searchables.sections.forEach(function(el) {
+            el.classList.remove('search-match', 'search-dimmed');
+        });
+    }
+
+    var debounceTimer;
+    input.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(doSearch, 150);
+    });
+
+    function doSearch() {
+        var query = input.value.trim().toLowerCase();
+        clearBtn.style.display = query ? '' : 'none';
+
+        var sheet = document.querySelector('.character-sheet');
+        var searchables = getAllSearchables();
+
+        if (!query) {
+            sheet.classList.remove('search-active');
+            clearAllStates(searchables);
+            return;
+        }
+
+        sheet.classList.add('search-active');
+        var firstMatch = null;
+
+        // First pass: search individual items and track which sections have item matches
+        var sectionsWithItemMatch = new Set();
+        searchables.items.forEach(function(item) {
+            var text = item.textContent.toLowerCase();
+            if (text.indexOf(query) !== -1) {
+                item.classList.add('search-match');
+                item.classList.remove('search-dimmed');
+                var parentSection = item.closest(sectionSelector);
+                if (parentSection) sectionsWithItemMatch.add(parentSection);
+                if (!firstMatch) firstMatch = item;
+            } else {
+                item.classList.remove('search-match');
+                item.classList.add('search-dimmed');
+            }
+        });
+
+        // Second pass: search sections by heading text, or full text for sections without items
+        searchables.sections.forEach(function(section) {
+            // Check heading match (h3 or first label)
+            var headings = section.querySelectorAll('h3, .proficiency-section > label, .stat-box > label');
+            var headingText = '';
+            headings.forEach(function(h) { headingText += ' ' + h.textContent.toLowerCase(); });
+
+            var hasItemMatch = sectionsWithItemMatch.has(section);
+            // For sections with items (inventory/features/spells), only match on heading
+            // For leaf sections (ability scores, saves, skills, combat stats, death saves), also match full text
+            var hasItems = section.querySelector(itemSelector);
+            var matched = headingText.indexOf(query) !== -1;
+            if (!matched && !hasItems) {
+                matched = section.textContent.toLowerCase().indexOf(query) !== -1;
+            }
+
+            if (matched || hasItemMatch) {
+                section.classList.add('search-match');
+                section.classList.remove('search-dimmed');
+                if (!firstMatch) firstMatch = section;
+            } else {
+                section.classList.remove('search-match');
+                section.classList.add('search-dimmed');
+            }
+        });
+
+        // Scroll first match into view and expand it
+        if (firstMatch) {
+            firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Auto-expand inventory/feature/spell items
+            var details = firstMatch.querySelector('.item-details');
+            if (details && !details.classList.contains('expanded')) {
+                var summary = firstMatch.querySelector('.item-summary');
+                if (summary) summary.click();
+            }
+        }
+    }
+
+    window.clearSheetSearch = function() {
+        input.value = '';
+        clearBtn.style.display = 'none';
+        var sheet = document.querySelector('.character-sheet');
+        sheet.classList.remove('search-active');
+        clearAllStates(getAllSearchables());
+        input.focus();
+    };
+
+    // Escape to clear search
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            clearSheetSearch();
+            input.blur();
+        }
     });
 })();
 </script>

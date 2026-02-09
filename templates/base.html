@@ -1,18 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ 'dark' if session.dark_mode else '' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Character Compendium{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nova+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
     <nav class="navbar">
         <div class="container">
             <h1 class="logo">Character Compendium</h1>
             {% if session.user_id %}
+            {% block nav_extra %}{% endblock %}
             <div class="nav-links">
-                <span>{{ session.username }}</span>
+                <a href="{{ url_for('profile') }}">{{ session.username }}</a>
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
                 {% if session.is_admin %}
                 <a href="{{ url_for('admin') }}">Admin</a>
