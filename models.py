@@ -176,6 +176,30 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    # Add remaining ability scores
+    for col in ['dex_score', 'con_score', 'wis_score', 'cha_score']:
+        try:
+            conn.execute(f'ALTER TABLE characters ADD COLUMN {col} INTEGER DEFAULT 10')
+        except sqlite3.OperationalError:
+            pass
+
+    # Add remaining save proficiencies
+    for col in ['dex_save_prof', 'con_save_prof', 'wis_save_prof', 'cha_save_prof']:
+        try:
+            conn.execute(f'ALTER TABLE characters ADD COLUMN {col} INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+
+    # Add remaining skill proficiencies
+    for col in ['acrobatics_prof', 'sleight_of_hand_prof', 'stealth_prof',
+                'animal_handling_prof', 'insight_prof', 'medicine_prof',
+                'perception_prof', 'survival_prof',
+                'deception_prof', 'intimidation_prof', 'performance_prof', 'persuasion_prof']:
+        try:
+            conn.execute(f'ALTER TABLE characters ADD COLUMN {col} INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+
     # Add initiative, speed, temp HP columns
     try:
         conn.execute('ALTER TABLE characters ADD COLUMN initiative INTEGER DEFAULT 0')
@@ -265,9 +289,17 @@ def update_character(character_id, user_id, data):
     
     allowed_fields = [
         'name', 'level', 'class', 'race', 'hp_current', 'hp_max', 'ac',
-        'proficiency_bonus', 'str_score', 'str_save_prof', 'int_score',
-        'int_save_prof', 'athletics_prof', 'arcana_prof', 'history_prof',
-        'investigation_prof', 'nature_prof', 'religion_prof',
+        'proficiency_bonus',
+        'str_score', 'str_save_prof',
+        'dex_score', 'dex_save_prof',
+        'con_score', 'con_save_prof',
+        'int_score', 'int_save_prof',
+        'wis_score', 'wis_save_prof',
+        'cha_score', 'cha_save_prof',
+        'athletics_prof', 'acrobatics_prof', 'sleight_of_hand_prof', 'stealth_prof',
+        'arcana_prof', 'history_prof', 'investigation_prof', 'nature_prof', 'religion_prof',
+        'animal_handling_prof', 'insight_prof', 'medicine_prof', 'perception_prof', 'survival_prof',
+        'deception_prof', 'intimidation_prof', 'performance_prof', 'persuasion_prof',
         'mana_current', 'mana_max', 'equipment', 'features', 'custom_abilities',
         'spellcasting', 'background', 'alignment',
         'death_save_success', 'death_save_fail',
@@ -341,17 +373,37 @@ STAT_OPTIONS = [
     ('initiative', 'Initiative'),
     ('speed', 'Speed'),
     ('str_score', 'Strength Score'),
+    ('dex_score', 'Dexterity Score'),
+    ('con_score', 'Constitution Score'),
     ('int_score', 'Intelligence Score'),
+    ('wis_score', 'Wisdom Score'),
+    ('cha_score', 'Charisma Score'),
     ('proficiency_bonus', 'Proficiency Bonus'),
     ('spell_attack', 'Spell Attack'),
     ('str_save', 'Strength Save'),
+    ('dex_save', 'Dexterity Save'),
+    ('con_save', 'Constitution Save'),
     ('int_save', 'Intelligence Save'),
+    ('wis_save', 'Wisdom Save'),
+    ('cha_save', 'Charisma Save'),
     ('athletics', 'Athletics'),
+    ('acrobatics', 'Acrobatics'),
+    ('sleight_of_hand', 'Sleight of Hand'),
+    ('stealth', 'Stealth'),
     ('arcana', 'Arcana'),
     ('history', 'History'),
     ('investigation', 'Investigation'),
     ('nature', 'Nature'),
     ('religion', 'Religion'),
+    ('animal_handling', 'Animal Handling'),
+    ('insight', 'Insight'),
+    ('medicine', 'Medicine'),
+    ('perception', 'Perception'),
+    ('survival', 'Survival'),
+    ('deception', 'Deception'),
+    ('intimidation', 'Intimidation'),
+    ('performance', 'Performance'),
+    ('persuasion', 'Persuasion'),
 ]
 
 def get_inventory(character_id):

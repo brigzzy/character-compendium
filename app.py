@@ -198,9 +198,14 @@ def update_character(character_id):
     # Convert numeric fields
     numeric_fields = [
         'level', 'hp_current', 'hp_max', 'ac', 'proficiency_bonus',
-        'str_score', 'str_save_prof', 'int_score', 'int_save_prof',
-        'athletics_prof', 'arcana_prof', 'history_prof', 'investigation_prof',
-        'nature_prof', 'religion_prof', 'mana_current', 'mana_max',
+        'str_score', 'str_save_prof', 'dex_score', 'dex_save_prof',
+        'con_score', 'con_save_prof', 'int_score', 'int_save_prof',
+        'wis_score', 'wis_save_prof', 'cha_score', 'cha_save_prof',
+        'athletics_prof', 'acrobatics_prof', 'sleight_of_hand_prof', 'stealth_prof',
+        'arcana_prof', 'history_prof', 'investigation_prof', 'nature_prof', 'religion_prof',
+        'animal_handling_prof', 'insight_prof', 'medicine_prof', 'perception_prof', 'survival_prof',
+        'deception_prof', 'intimidation_prof', 'performance_prof', 'persuasion_prof',
+        'mana_current', 'mana_max',
         'spellcasting', 'death_save_success', 'death_save_fail',
         'initiative', 'speed', 'temp_hp'
     ]
@@ -225,9 +230,14 @@ def update_field(character_id):
 
     numeric_fields = [
         'level', 'hp_current', 'hp_max', 'ac', 'proficiency_bonus',
-        'str_score', 'str_save_prof', 'int_score', 'int_save_prof',
-        'athletics_prof', 'arcana_prof', 'history_prof', 'investigation_prof',
-        'nature_prof', 'religion_prof', 'mana_current', 'mana_max',
+        'str_score', 'str_save_prof', 'dex_score', 'dex_save_prof',
+        'con_score', 'con_save_prof', 'int_score', 'int_save_prof',
+        'wis_score', 'wis_save_prof', 'cha_score', 'cha_save_prof',
+        'athletics_prof', 'acrobatics_prof', 'sleight_of_hand_prof', 'stealth_prof',
+        'arcana_prof', 'history_prof', 'investigation_prof', 'nature_prof', 'religion_prof',
+        'animal_handling_prof', 'insight_prof', 'medicine_prof', 'perception_prof', 'survival_prof',
+        'deception_prof', 'intimidation_prof', 'performance_prof', 'persuasion_prof',
+        'mana_current', 'mana_max',
         'spellcasting', 'death_save_success', 'death_save_fail',
         'initiative', 'speed', 'temp_hp'
     ]

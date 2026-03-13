@@ -13,13 +13,25 @@
 
 {# Pre-compute effective values used across sections #}
 {% set str_bonus = bonuses.get('str_score', 0) %}
+{% set dex_bonus = bonuses.get('dex_score', 0) %}
+{% set con_bonus = bonuses.get('con_score', 0) %}
 {% set int_bonus = bonuses.get('int_score', 0) %}
+{% set wis_bonus = bonuses.get('wis_score', 0) %}
+{% set cha_bonus = bonuses.get('cha_score', 0) %}
 {% set prof_bonus = bonuses.get('proficiency_bonus', 0) %}
 {% set effective_str = character.str_score + str_bonus %}
+{% set effective_dex = character.dex_score + dex_bonus %}
+{% set effective_con = character.con_score + con_bonus %}
 {% set effective_int = character.int_score + int_bonus %}
+{% set effective_wis = character.wis_score + wis_bonus %}
+{% set effective_cha = character.cha_score + cha_bonus %}
 {% set effective_prof = character.proficiency_bonus + prof_bonus %}
 {% set str_mod = ((effective_str - 10) // 2) if effective_str >= 10 else ((effective_str - 11) // 2) %}
+{% set dex_mod = ((effective_dex - 10) // 2) if effective_dex >= 10 else ((effective_dex - 11) // 2) %}
+{% set con_mod = ((effective_con - 10) // 2) if effective_con >= 10 else ((effective_con - 11) // 2) %}
 {% set int_mod = ((effective_int - 10) // 2) if effective_int >= 10 else ((effective_int - 11) // 2) %}
+{% set wis_mod = ((effective_wis - 10) // 2) if effective_wis >= 10 else ((effective_wis - 11) // 2) %}
+{% set cha_mod = ((effective_cha - 10) // 2) if effective_cha >= 10 else ((effective_cha - 11) // 2) %}
 
 <div class="character-sheet">
 
@@ -88,33 +100,46 @@
             <div class="section ability-scores">
                 <h3>Ability Scores</h3>
 
-                <div class="ability-score" data-ability="str" data-equip-bonus="{{ str_bonus }}">
-                    <label>Strength</label>
-                    {% if str_bonus %}
-                    <div class="effective-score">{{ effective_str }}</div>
-                    <div class="base-score-row">
-                        <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input-small" form="character-form">
-                        <span class="bonus-tag">{{ '+' if str_bonus > 0 else '' }}{{ str_bonus }}</span>
-                    </div>
-                    {% else %}
-                    <input type="number" name="str_score" value="{{ character.str_score }}" min="1" max="30" class="score-input" form="character-form">
-                    {% endif %}
-                    <div class="modifier">{{ str_mod }}</div>
-                </div>
+                {% set ability_list = [
+                    ('str', 'Strength', str_bonus, effective_str, character.str_score, str_mod, 'str_save_prof', 'str_save'),
+                    ('int', 'Intelligence', int_bonus, effective_int, character.int_score, int_mod, 'int_save_prof', 'int_save'),
+                    ('dex', 'Dexterity', dex_bonus, effective_dex, character.dex_score, dex_mod, 'dex_save_prof', 'dex_save'),
+                    ('wis', 'Wisdom', wis_bonus, effective_wis, character.wis_score, wis_mod, 'wis_save_prof', 'wis_save'),
+                    ('con', 'Constitution', con_bonus, effective_con, character.con_score, con_mod, 'con_save_prof', 'con_save'),
+                    ('cha', 'Charisma', cha_bonus, effective_cha, character.cha_score, cha_mod, 'cha_save_prof', 'cha_save'),
+                ] %}
 
-                <div class="ability-score" data-ability="int" data-equip-bonus="{{ int_bonus }}">
-                    <label>Intelligence</label>
-                    {% if int_bonus %}
-                    <div class="effective-score">{{ effective_int }}</div>
+                {% for ability, label, bonus, effective, base_score, mod, save_field, save_bonus_key in ability_list %}
+                {% set save_equip = bonuses.get(save_bonus_key, 0) %}
+                <div class="ability-score" data-ability="{{ ability }}" data-equip-bonus="{{ bonus }}">
+                    <label>{{ label }}</label>
+                    {% if bonus %}
+                    <div class="effective-score">{{ effective }}</div>
                     <div class="base-score-row">
-                        <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input-small" form="character-form">
-                        <span class="bonus-tag">{{ '+' if int_bonus > 0 else '' }}{{ int_bonus }}</span>
+                        <input type="number" name="{{ ability }}_score" value="{{ base_score }}" min="1" max="30" class="score-input-small" form="character-form">
+                        <span class="bonus-tag">{{ '+' if bonus > 0 else '' }}{{ bonus }}</span>
                     </div>
                     {% else %}
-                    <input type="number" name="int_score" value="{{ character.int_score }}" min="1" max="30" class="score-input" form="character-form">
+                    <input type="number" name="{{ ability }}_score" value="{{ base_score }}" min="1" max="30" class="score-input" form="character-form">
                     {% endif %}
-                    <div class="modifier">{{ int_mod }}</div>
+                    <div class="modifier-row">
+                        <div class="modifier-group">
+                            <div class="modifier">{{ mod }}</div>
+                            <span class="modifier-label">mod</span>
+                        </div>
+                        <div class="modifier-group">
+                            <div class="ability-save {{ 'proficient' if character[save_field] else '' }}" data-ability="{{ ability }}" data-equip-bonus="{{ save_equip }}">
+                                <span class="skill-bonus">
+                                    {{ mod + (effective_prof if character[save_field] else 0) + save_equip }}
+                                    {% if save_equip %}<span class="equip-bonus-inline" title="Includes +{{ save_equip }} from items">*</span>{% endif %}
+                                </span>
+                                <input type="checkbox" class="save-prof-check" id="{{ save_field }}" name="{{ save_field }}" value="1" {% if character[save_field] %}checked{% endif %} form="character-form">
+                            </div>
+                            <span class="modifier-label">save</span>
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
 
             <!-- Proficiency Bonus -->
@@ -131,50 +156,39 @@
                 {% endif %}
             </div>
 
-            <!-- Saving Throws -->
-            <div class="section saves">
-                <h3>Saving Throws</h3>
-
-                <div class="skill-item" data-ability="str" data-equip-bonus="{{ bonuses.get('str_save', 0) }}">
-                    <input type="checkbox" id="str_save_prof" name="str_save_prof" value="1" {% if character.str_save_prof %}checked{% endif %} form="character-form">
-                    <label for="str_save_prof">Strength</label>
-                    <span class="skill-bonus">
-                        {% set str_save_equip = bonuses.get('str_save', 0) %}
-                        {{ str_mod + (effective_prof if character.str_save_prof else 0) + str_save_equip }}
-                        {% if str_save_equip %}<span class="equip-bonus-inline" title="Includes +{{ str_save_equip }} from items">*</span>{% endif %}
-                    </span>
-                </div>
-                <div class="skill-item" data-ability="int" data-equip-bonus="{{ bonuses.get('int_save', 0) }}">
-                    <input type="checkbox" id="int_save_prof" name="int_save_prof" value="1" {% if character.int_save_prof %}checked{% endif %} form="character-form">
-                    <label for="int_save_prof">Intelligence</label>
-                    <span class="skill-bonus">
-                        {% set int_save_equip = bonuses.get('int_save', 0) %}
-                        {{ int_mod + (effective_prof if character.int_save_prof else 0) + int_save_equip }}
-                        {% if int_save_equip %}<span class="equip-bonus-inline" title="Includes +{{ int_save_equip }} from items">*</span>{% endif %}
-                    </span>
-                </div>
-            </div>
-
             <!-- Skills -->
             <div class="section skills">
                 <h3>Skills</h3>
 
                 {% set skill_list = [
-                    ('athletics_prof', 'Athletics (Str)', str_mod, 'athletics'),
-                    ('arcana_prof', 'Arcana (Int)', int_mod, 'arcana'),
-                    ('history_prof', 'History (Int)', int_mod, 'history'),
-                    ('investigation_prof', 'Investigation (Int)', int_mod, 'investigation'),
-                    ('nature_prof', 'Nature (Int)', int_mod, 'nature'),
-                    ('religion_prof', 'Religion (Int)', int_mod, 'religion'),
+                    ('acrobatics_prof', 'Acrobatics (Dex)', dex_mod, 'acrobatics', 'dex'),
+                    ('animal_handling_prof', 'Animal Handling (Wis)', wis_mod, 'animal_handling', 'wis'),
+                    ('arcana_prof', 'Arcana (Int)', int_mod, 'arcana', 'int'),
+                    ('athletics_prof', 'Athletics (Str)', str_mod, 'athletics', 'str'),
+                    ('deception_prof', 'Deception (Cha)', cha_mod, 'deception', 'cha'),
+                    ('history_prof', 'History (Int)', int_mod, 'history', 'int'),
+                    ('insight_prof', 'Insight (Wis)', wis_mod, 'insight', 'wis'),
+                    ('intimidation_prof', 'Intimidation (Cha)', cha_mod, 'intimidation', 'cha'),
+                    ('investigation_prof', 'Investigation (Int)', int_mod, 'investigation', 'int'),
+                    ('medicine_prof', 'Medicine (Wis)', wis_mod, 'medicine', 'wis'),
+                    ('nature_prof', 'Nature (Int)', int_mod, 'nature', 'int'),
+                    ('perception_prof', 'Perception (Wis)', wis_mod, 'perception', 'wis'),
+                    ('performance_prof', 'Performance (Cha)', cha_mod, 'performance', 'cha'),
+                    ('persuasion_prof', 'Persuasion (Cha)', cha_mod, 'persuasion', 'cha'),
+                    ('religion_prof', 'Religion (Int)', int_mod, 'religion', 'int'),
+                    ('sleight_of_hand_prof', 'Sleight of Hand (Dex)', dex_mod, 'sleight_of_hand', 'dex'),
+                    ('stealth_prof', 'Stealth (Dex)', dex_mod, 'stealth', 'dex'),
+                    ('survival_prof', 'Survival (Wis)', wis_mod, 'survival', 'wis'),
                 ] %}
 
-                {% for field, label, base_mod, bonus_key in skill_list %}
+                {% for field, label, base_mod, bonus_key, ability in skill_list %}
                 {% set skill_equip = bonuses.get(bonus_key, 0) %}
-                <div class="skill-item" data-ability="{{ 'str' if 'Str' in label else 'int' }}" data-equip-bonus="{{ skill_equip }}">
-                    <input type="checkbox" id="{{ field }}" name="{{ field }}" value="1" {% if character[field] %}checked{% endif %} form="character-form">
-                    <label for="{{ field }}">{{ label }}</label>
+                <div class="skill-item" data-ability="{{ ability }}" data-equip-bonus="{{ skill_equip }}">
+                    <input type="hidden" name="{{ field }}" value="{{ character[field] }}" form="character-form">
+                    <span class="skill-pip" data-value="{{ character[field] }}" title="Click to cycle: none / proficient / expertise"></span>
+                    <label>{{ label }}</label>
                     <span class="skill-bonus">
-                        {{ base_mod + (effective_prof if character[field] else 0) + skill_equip }}
+                        {{ base_mod + (effective_prof * character[field]) + skill_equip }}
                         {% if skill_equip %}<span class="equip-bonus-inline" title="Includes +{{ skill_equip }} from items">*</span>{% endif %}
                     </span>
                 </div>
@@ -203,64 +217,82 @@
                 </div>
 
                 {% set hp_bonus = bonuses.get('hp_max', 0) %}
-                <div class="stat-box">
+                {% set hp_effective_max = character.hp_max + hp_bonus %}
+                <div class="stat-box stat-box-pool" id="hp-pool">
                     <label>Hit Points</label>
-                    {% if hp_bonus %}
-                    <div class="hp-inputs">
-                        <input type="number" name="hp_current" value="{{ character.hp_current }}" min="0" class="stat-input" placeholder="Current" form="character-form">
-                        <span>/</span>
-                        <span class="effective-stat-inline">{{ character.hp_max + hp_bonus }}</span>
+                    <div class="pool-display" onclick="togglePoolAdjuster('hp')">
+                        <span class="pool-value" id="hp-display">{{ character.hp_current }} / {{ hp_effective_max }}</span>
+                        <span class="temp-hp-tag" id="hp-temp-display"{% if not character.temp_hp %} style="display:none"{% endif %}>(+{{ character.temp_hp or 0 }})</span>
                     </div>
+                    {% if hp_bonus %}
                     <div class="base-stat-row">
-                        <span class="base-label">Base max</span>
-                        <input type="number" name="hp_max" value="{{ character.hp_max }}" min="0" class="stat-input-small" form="character-form">
+                        <span class="base-label">Max bonus</span>
                         <span class="bonus-tag">{{ '+' if hp_bonus > 0 else '' }}{{ hp_bonus }}</span>
                     </div>
-                    {% else %}
-                    <div class="hp-inputs">
-                        <input type="number" name="hp_current" value="{{ character.hp_current }}" min="0" class="stat-input" placeholder="Current" form="character-form">
-                        <span>/</span>
-                        <input type="number" name="hp_max" value="{{ character.hp_max }}" min="0" class="stat-input" placeholder="Max" form="character-form">
-                    </div>
                     {% endif %}
+                    <div class="pool-adjuster" id="hp-adjuster" style="display:none">
+                        <div class="pool-fields">
+                            <label class="pool-field-label">Current</label>
+                            <input type="number" id="hp-current-input" value="{{ character.hp_current }}" min="0" max="{{ hp_effective_max }}">
+                            <label class="pool-field-label">Max</label>
+                            <input type="number" id="hp-max-input" value="{{ character.hp_max }}" min="0">
+                        </div>
+                        <div class="pool-delta-row">
+                            <input type="number" class="pool-delta-input" id="hp-delta-input" placeholder="Amount" min="1">
+                        </div>
+                        <div class="pool-actions">
+                            <button type="button" class="btn-pool btn-heal" onclick="adjustPool('hp', 'heal', this)">Heal</button>
+                            <button type="button" class="btn-pool btn-damage" onclick="adjustPool('hp', 'damage', this)">Damage</button>
+                            <button type="button" class="btn-pool btn-temp" onclick="adjustPool('hp', 'temp', this)">Temp HP</button>
+                        </div>
+                    </div>
+                    <input type="hidden" name="hp_current" value="{{ character.hp_current }}" form="character-form">
+                    <input type="hidden" name="hp_max" value="{{ character.hp_max }}" form="character-form">
+                    <input type="hidden" name="temp_hp" value="{{ character.temp_hp }}" form="character-form">
                 </div>
 
                 {% set mana_bonus = bonuses.get('mana_max', 0) %}
-                <div class="stat-box mana-stat-box" style="{{ '' if character.spellcasting else 'display:none' }}">
+                {% set mana_effective_max = character.mana_max + mana_bonus %}
+                <div class="stat-box stat-box-pool mana-stat-box" id="mana-pool" style="{{ '' if character.spellcasting else 'display:none' }}">
                     <label>Mana</label>
-                    {% if mana_bonus %}
-                    <div class="hp-inputs">
-                        <input type="number" name="mana_current" value="{{ character.mana_current }}" min="0" class="stat-input" placeholder="Current" form="character-form">
-                        <span>/</span>
-                        <span class="effective-stat-inline">{{ character.mana_max + mana_bonus }}</span>
+                    <div class="pool-display" onclick="togglePoolAdjuster('mana')">
+                        <span class="pool-value" id="mana-display">{{ character.mana_current }} / {{ mana_effective_max }}</span>
                     </div>
+                    {% if mana_bonus %}
                     <div class="base-stat-row">
-                        <span class="base-label">Base max</span>
-                        <input type="number" name="mana_max" value="{{ character.mana_max }}" min="0" class="stat-input-small" form="character-form">
+                        <span class="base-label">Max bonus</span>
                         <span class="bonus-tag">{{ '+' if mana_bonus > 0 else '' }}{{ mana_bonus }}</span>
                     </div>
-                    {% else %}
-                    <div class="hp-inputs">
-                        <input type="number" name="mana_current" value="{{ character.mana_current }}" min="0" class="stat-input" placeholder="Current" form="character-form">
-                        <span>/</span>
-                        <input type="number" name="mana_max" value="{{ character.mana_max }}" min="0" class="stat-input" placeholder="Max" form="character-form">
-                    </div>
                     {% endif %}
+                    <div class="pool-adjuster" id="mana-adjuster" style="display:none">
+                        <div class="pool-fields">
+                            <label class="pool-field-label">Current</label>
+                            <input type="number" id="mana-current-input" value="{{ character.mana_current }}" min="0" max="{{ mana_effective_max }}">
+                            <label class="pool-field-label">Max</label>
+                            <input type="number" id="mana-max-input" value="{{ character.mana_max }}" min="0">
+                        </div>
+                        <div class="pool-delta-row">
+                            <input type="number" class="pool-delta-input" id="mana-delta-input" placeholder="Amount" min="1">
+                        </div>
+                        <div class="pool-actions">
+                            <button type="button" class="btn-pool btn-restore" onclick="adjustPool('mana', 'heal', this)">Restore</button>
+                            <button type="button" class="btn-pool btn-spend" onclick="adjustPool('mana', 'damage', this)">Spend</button>
+                        </div>
+                    </div>
+                    <input type="hidden" name="mana_current" value="{{ character.mana_current }}" form="character-form">
+                    <input type="hidden" name="mana_max" value="{{ character.mana_max }}" form="character-form">
                 </div>
 
                 {% set init_bonus = bonuses.get('initiative', 0) %}
-                <div class="stat-box">
+                <div class="stat-box" id="initiative-box">
                     <label>Initiative</label>
-                    {% if init_bonus %}
-                    <div class="effective-stat">{{ character.initiative + init_bonus }}</div>
+                    <div class="effective-stat" id="initiative-display">{{ dex_mod + init_bonus }}</div>
                     <div class="base-stat-row">
-                        <span class="base-label">Base</span>
-                        <input type="number" name="initiative" value="{{ character.initiative }}" class="stat-input-small" form="character-form">
+                        <span class="base-label">DEX {{ dex_mod }}</span>
+                        {% if init_bonus %}
                         <span class="bonus-tag">{{ '+' if init_bonus > 0 else '' }}{{ init_bonus }}</span>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <input type="number" name="initiative" value="{{ character.initiative }}" class="stat-input" form="character-form">
-                    {% endif %}
                 </div>
 
                 {% set speed_bonus = bonuses.get('speed', 0) %}
@@ -278,10 +310,6 @@
                     {% endif %}
                 </div>
 
-                <div class="stat-box stat-box-temp-hp">
-                    <label>Temp HP</label>
-                    <input type="number" name="temp_hp" value="{{ character.temp_hp }}" min="0" class="stat-input temp-hp-input" form="character-form">
-                </div>
             </div>
 
             <!-- Death Saves -->
@@ -333,7 +361,7 @@
                                 <div class="currency-adjuster" style="display:none">
                                     <div class="adjuster-controls">
                                         <button type="button" class="btn-adjust btn-minus" onclick="adjustCurrency({{ currency.id }}, -1)">−</button>
-                                        <input type="number" class="adjuster-input" id="adjuster-input-{{ currency.id }}" value="1" min="1">
+                                        <input type="number" class="adjuster-input" id="adjuster-input-{{ currency.id }}" placeholder="1" min="1">
                                         <button type="button" class="btn-adjust btn-plus" onclick="adjustCurrency({{ currency.id }}, 1)">+</button>
                                     </div>
                                     <div class="adjuster-actions">
@@ -756,8 +784,14 @@ function toggleProperty(el) {
     const levelInput = document.querySelector('input[name="level"][form="character-form"], #character-form input[name="level"]');
     const profInput = document.querySelector('input[name="proficiency_bonus"][form="character-form"], #character-form input[name="proficiency_bonus"]');
     const profSection = profInput ? profInput.closest('.proficiency-section') : null;
-    const strInput = document.querySelector('input[name="str_score"][form="character-form"]');
-    const intInput = document.querySelector('input[name="int_score"][form="character-form"]');
+    const abilityInputs = {
+        str: document.querySelector('input[name="str_score"][form="character-form"]'),
+        dex: document.querySelector('input[name="dex_score"][form="character-form"]'),
+        con: document.querySelector('input[name="con_score"][form="character-form"]'),
+        int: document.querySelector('input[name="int_score"][form="character-form"]'),
+        wis: document.querySelector('input[name="wis_score"][form="character-form"]'),
+        cha: document.querySelector('input[name="cha_score"][form="character-form"]'),
+    };
 
     // --- Auto-save ---
     function saveField(field, value) {
@@ -779,7 +813,7 @@ function toggleProperty(el) {
     }
 
     function getAbilityMod(ability) {
-        const input = ability === 'str' ? strInput : intInput;
+        const input = abilityInputs[ability];
         const abilityBlock = input.closest('.ability-score');
         const equipBonus = parseInt(abilityBlock.dataset.equipBonus) || 0;
         const baseScore = parseInt(input.value) || 10;
@@ -825,13 +859,24 @@ function toggleProperty(el) {
     function recalcSavesAndSkills() {
         const effectiveProf = getEffectiveProf();
 
-        document.querySelectorAll('.saves .skill-item[data-ability], .skills .skill-item[data-ability]').forEach(item => {
+        document.querySelectorAll('.ability-save[data-ability], .skills .skill-item[data-ability]').forEach(item => {
             const ability = item.dataset.ability;
             const equipBonus = parseInt(item.dataset.equipBonus) || 0;
-            const cb = item.querySelector('input[type="checkbox"]');
-            const profBonus = cb && cb.checked ? effectiveProf : 0;
             const mod = getAbilityMod(ability);
-            const total = mod + profBonus + equipBonus;
+
+            var profMultiplier = 0;
+            if (item.classList.contains('ability-save')) {
+                // Saves: checkbox (binary)
+                var cb = item.querySelector('input[type="checkbox"]');
+                profMultiplier = cb && cb.checked ? 1 : 0;
+                item.classList.toggle('proficient', profMultiplier > 0);
+            } else {
+                // Skills: hidden input (0 = none, 1 = proficient, 2 = expertise)
+                var hidden = item.querySelector('input[type="hidden"]');
+                profMultiplier = hidden ? parseInt(hidden.value) || 0 : 0;
+            }
+
+            const total = mod + (effectiveProf * profMultiplier) + equipBonus;
 
             const bonusSpan = item.querySelector('.skill-bonus');
             if (bonusSpan) {
@@ -841,6 +886,21 @@ function toggleProperty(el) {
             }
         });
     }
+
+    // --- Skill pip tri-state cycling: 0 (none) -> 1 (proficient) -> 2 (expertise) -> 0 ---
+    document.querySelectorAll('.skill-pip').forEach(function(pip) {
+        pip.addEventListener('click', function() {
+            var current = parseInt(pip.dataset.value) || 0;
+            var next = (current + 1) % 3;
+            pip.dataset.value = next;
+            var hidden = pip.parentElement.querySelector('input[type="hidden"]');
+            if (hidden) {
+                hidden.value = next;
+                saveField(hidden.name, next);
+            }
+            recalcSavesAndSkills();
+        });
+    });
 
     // --- Double-click-to-edit ---
     function makeEditable(input) {
@@ -855,13 +915,28 @@ function toggleProperty(el) {
         input.classList.add('field-readonly');
     }
 
+    // --- Update initiative display from Dex mod + bonuses ---
+    function recalcInitiative() {
+        var initDisplay = document.getElementById('initiative-display');
+        var initBox = document.getElementById('initiative-box');
+        if (!initDisplay || !abilityInputs.dex) return;
+        var dexMod = getAbilityMod('dex');
+        var initBonus = {{ init_bonus|default(0) }};
+        initDisplay.textContent = dexMod + initBonus;
+        var baseLabel = initBox.querySelector('.base-label');
+        if (baseLabel) baseLabel.textContent = 'DEX ' + dexMod;
+    }
+
+    var abilityScoreNames = ['str_score', 'dex_score', 'con_score', 'int_score', 'wis_score', 'cha_score'];
+
     // Live recalc while typing
     function onInputChange(input) {
         if (input.name === 'level') {
             updateProfFromLevel();
-        } else if (input.name === 'str_score' || input.name === 'int_score') {
+        } else if (abilityScoreNames.indexOf(input.name) !== -1) {
             recalcAbilities();
             recalcSavesAndSkills();
+            if (input.name === 'dex_score') recalcInitiative();
         }
     }
 
@@ -932,14 +1007,28 @@ function toggleProperty(el) {
             if (cb.name === 'spellcasting') {
                 var manaBox = document.querySelector('.mana-stat-box');
                 var spellsSection = document.querySelector('.spells-section');
-                var combatStats = document.querySelector('.combat-stats');
                 if (manaBox) manaBox.style.display = cb.checked ? '' : 'none';
                 if (spellsSection) spellsSection.style.display = cb.checked ? '' : 'none';
-                if (combatStats) combatStats.classList.toggle('two-col', !cb.checked);
             } else {
                 recalcSavesAndSkills();
             }
         });
+    });
+
+    // Save circles: click to show proficiency checkbox, click outside to hide
+    document.querySelectorAll('.ability-save').forEach(save => {
+        save.addEventListener('click', function(e) {
+            if (e.target.classList.contains('save-prof-check')) return;
+            var wasEditing = save.classList.contains('editing');
+            // Close all other open save editors
+            document.querySelectorAll('.ability-save.editing').forEach(s => s.classList.remove('editing'));
+            if (!wasEditing) save.classList.add('editing');
+        });
+    });
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.ability-save')) {
+            document.querySelectorAll('.ability-save.editing').forEach(s => s.classList.remove('editing'));
+        }
     });
 })();
 </script>
@@ -1075,6 +1164,150 @@ function toggleProperty(el) {
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.currency-chip') && !e.target.closest('.currency-add-form')) {
             document.querySelectorAll('.currency-adjuster').forEach(function(a) {
+                a.style.display = 'none';
+            });
+        }
+    });
+})();
+</script>
+<script>
+// HP & Mana Pool Adjusters
+(function() {
+    var fieldUrl = document.getElementById('character-form').dataset.fieldUrl;
+
+    // Pool state
+    var pools = {
+        hp: {
+            current: parseInt(document.querySelector('input[name="hp_current"]').value) || 0,
+            max: parseInt(document.querySelector('input[name="hp_max"]').value) || 0,
+            tempHp: parseInt(document.querySelector('input[name="temp_hp"]').value) || 0,
+            bonus: {{ hp_bonus|default(0) }}
+        },
+        mana: {
+            current: parseInt(document.querySelector('input[name="mana_current"]')?.value) || 0,
+            max: parseInt(document.querySelector('input[name="mana_max"]')?.value) || 0,
+            bonus: {{ mana_bonus|default(0) }}
+        }
+    };
+
+    function saveField(field, value) {
+        fetch(fieldUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({field: field, value: value})
+        });
+    }
+
+    function updateDisplay(pool) {
+        var p = pools[pool];
+        var effectiveMax = p.max + (p.bonus || 0);
+        var text = p.current + ' / ' + effectiveMax;
+        document.getElementById(pool + '-display').textContent = text;
+        if (pool === 'hp') {
+            var tempEl = document.getElementById('hp-temp-display');
+            if (p.tempHp > 0) {
+                tempEl.textContent = '(+' + p.tempHp + ')';
+                tempEl.style.display = '';
+            } else {
+                tempEl.style.display = 'none';
+            }
+        }
+        // Sync hidden inputs
+        document.querySelector('input[name="' + pool + '_current"]').value = p.current;
+        document.querySelector('input[name="' + pool + '_max"]').value = p.max;
+        if (pool === 'hp') {
+            document.querySelector('input[name="temp_hp"]').value = p.tempHp;
+        }
+        // Sync popover inputs
+        var curInput = document.getElementById(pool + '-current-input');
+        var maxInput = document.getElementById(pool + '-max-input');
+        if (curInput) curInput.value = p.current;
+        if (maxInput) maxInput.value = p.max;
+    }
+
+    window.togglePoolAdjuster = function(pool) {
+        var adjuster = document.getElementById(pool + '-adjuster');
+        var isOpen = adjuster.style.display !== 'none';
+
+        // Close all pool adjusters
+        document.querySelectorAll('.pool-adjuster').forEach(function(a) {
+            a.style.display = 'none';
+        });
+
+        if (!isOpen) {
+            adjuster.style.display = '';
+            adjuster.querySelector('.pool-delta-input').focus();
+        }
+    };
+
+    window.adjustPool = function(pool, action, btn) {
+        var p = pools[pool];
+        var delta = parseInt(document.getElementById(pool + '-delta-input').value) || 1;
+        var effectiveMax = p.max + (p.bonus || 0);
+
+        if (action === 'heal') {
+            p.current = Math.min(p.current + delta, effectiveMax);
+            saveField(pool + '_current', p.current);
+        } else if (action === 'damage') {
+            if (pool === 'hp' && p.tempHp > 0) {
+                // Damage temp HP first
+                if (delta <= p.tempHp) {
+                    p.tempHp -= delta;
+                    saveField('temp_hp', p.tempHp);
+                } else {
+                    var remainder = delta - p.tempHp;
+                    p.tempHp = 0;
+                    p.current = Math.max(p.current - remainder, 0);
+                    saveField('temp_hp', p.tempHp);
+                    saveField(pool + '_current', p.current);
+                }
+            } else {
+                p.current = Math.max(p.current - delta, 0);
+                saveField(pool + '_current', p.current);
+            }
+        } else if (action === 'temp') {
+            // Temp HP doesn't stack — take the higher value
+            p.tempHp = Math.max(p.tempHp, delta);
+            saveField('temp_hp', p.tempHp);
+        }
+
+        updateDisplay(pool);
+
+        // Glow animation on the clicked button
+        if (btn) {
+            btn.classList.remove('glow');
+            void btn.offsetWidth; // force reflow to restart animation
+            btn.classList.add('glow');
+            btn.addEventListener('animationend', function() {
+                btn.classList.remove('glow');
+            }, {once: true});
+        }
+    };
+
+    // Direct edits to current/max fields in the popover
+    ['hp', 'mana'].forEach(function(pool) {
+        var curInput = document.getElementById(pool + '-current-input');
+        var maxInput = document.getElementById(pool + '-max-input');
+        if (curInput) {
+            curInput.addEventListener('change', function() {
+                pools[pool].current = parseInt(this.value) || 0;
+                saveField(pool + '_current', pools[pool].current);
+                updateDisplay(pool);
+            });
+        }
+        if (maxInput) {
+            maxInput.addEventListener('change', function() {
+                pools[pool].max = parseInt(this.value) || 0;
+                saveField(pool + '_max', pools[pool].max);
+                updateDisplay(pool);
+            });
+        }
+    });
+
+    // Close pool adjusters when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.stat-box-pool')) {
+            document.querySelectorAll('.pool-adjuster').forEach(function(a) {
                 a.style.display = 'none';
             });
         }
